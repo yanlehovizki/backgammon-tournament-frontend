@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { API_ENDPOINTS, apiRequest } from '../config/api';
-import { useNavigate } from 'react-router-dom'; // Add this line
+// import { useNavigate } from 'react-router-dom'; // REMOVE THIS LINE
 
-const Login = () => {
+const Login = ({ onLogin }) => { // ADD onLogin as a prop
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
-  const navigate = useNavigate(); // Add this line
+  // const navigate = useNavigate(); // REMOVE THIS LINE
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -20,10 +20,12 @@ const Login = () => {
 
       if (response.success) {
         setMessage('Login successful!');
-        // Here you would typically store the user token/session and redirect
-        // For now, just a message. In a real app, you'd use react-router-dom for navigation.
         console.log('User data:', response.data);
-        navigate('/dashboard'); // <--- This line redirects after successful login
+        // Call the onLogin prop to update the user state in App.jsx
+        if (onLogin) {
+          onLogin(response.data);
+        }
+        // No explicit navigate here, App.jsx handles redirection based on user state
       } else {
         setMessage(`Login failed: ${response.error || 'Unknown error'}`);
       }
