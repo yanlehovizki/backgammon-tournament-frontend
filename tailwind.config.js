@@ -49,4 +49,19 @@ export default {
     },
   },
   plugins: [],
+  safelist: [
+    'bg-background',
+    'text-foreground',
+    'text-muted-foreground',
+    'bg-card',
+    'text-card-foreground',
+    'bg-primary',
+    'text-primary-foreground',
+    'bg-secondary',
+    'text-secondary-foreground',
+    'border-border',
+    'bg-primary/10',
+    'text-green-600',
+    'text-red-600',
+  ]
 }
