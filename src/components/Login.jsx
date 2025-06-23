@@ -20,10 +20,10 @@ const Login = ({ onLogin }) => { // ADD onLogin as a prop
 
       if (response.success) {
         setMessage('Login successful!');
-        console.log('User data:', response.data);
+        console.log('Login.jsx: API response data:', response.data); // ADD THIS LINE
         // Call the onLogin prop to update the user state in App.jsx
         if (onLogin) {
-          onLogin(response.data);
+          onLogin(response.data.player); // <--- CHANGED THIS LINE
         }
         // No explicit navigate here, App.jsx handles redirection based on user state
       } else {
