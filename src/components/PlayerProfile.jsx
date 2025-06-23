@@ -1,3 +1,4 @@
+import { API_ENDPOINTS, apiRequest } from '../config/api'
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -15,26 +16,27 @@ const PlayerProfile = ({ user }) => {
   }, [user])
 
   const fetchPlayerData = async () => {
-    try {
-      const response = await fetch(`https://77h9ikcj6vgw.manus.space/api/players/${user.player_id}/tournaments`)
-      const data = await response.json()
-      setPlayerData(data)
-    } catch (error) {
-      console.error('Error fetching player data:', error)
-    } finally {
-      setLoading(false)
-    }
+  try {
+    const response = await apiRequest(API_ENDPOINTS.PLAYER_TOURNAMENTS(user.player_id))
+    const data = response.success ? response.data : { current_tournaments: [], past_tournaments: [] }
+    setPlayerData(data)
+  } catch (error) {
+    console.error('Error fetching player data:', error)
+  } finally {
+    setLoading(false)
   }
+}
 
   const fetchPlayerMatches = async () => {
-    try {
-      const response = await fetch(`https://77h9ikcj6vgw.manus.space/api/players/${user.player_id}/matches`)
-      const data = await response.json()
-      setPlayerMatches(data.matches || [])
-    } catch (error) {
-      console.error('Error fetching player matches:', error)
-    }
+  try {
+    // Note: You may need to add this endpoint to your API_ENDPOINTS if it doesn't exist
+    const response = await apiRequest(`${API_BASE_URL}/api/players/${user.player_id}/matches`)
+    const data = response.success ? response.data : { matches: [] }
+    setPlayerMatches(data.matches || [])
+  } catch (error) {
+    console.error('Error fetching player matches:', error)
   }
+}
 
   const getStatusBadge = (status) => {
     const statusConfig = {
