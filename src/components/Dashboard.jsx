@@ -1,3 +1,4 @@
+import { API_ENDPOINTS, apiRequest } from '../config/api'
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
@@ -16,13 +17,14 @@ const Dashboard = ({ user }) => {
 
   const fetchDashboardData = async () => {
     try {
-      // Fetch all tournaments
-      const tournamentsResponse = await fetch('https://77h9ikcj6vgw.manus.space/api/tournaments')
-      const tournamentsData = await tournamentsResponse.json()
-      
-      // Fetch player's tournaments
-      const playerTournamentsResponse = await fetch(`https://77h9ikcj6vgw.manus.space/api/players/${user.player_id}/tournaments`)
-      const playerTournamentsData = await playerTournamentsResponse.json()
+  // Fetch all tournaments
+const tournamentsResponse = await apiRequest(API_ENDPOINTS.TOURNAMENTS)
+const tournamentsData = tournamentsResponse.success ? tournamentsResponse.data : { tournaments: [] }
+
+// Fetch player's tournaments
+const playerTournamentsResponse = await apiRequest(API_ENDPOINTS.PLAYER_TOURNAMENTS(user.player_id))
+const playerTournamentsData = playerTournamentsResponse.success ? playerTournamentsResponse.data : { current_tournaments: [], past_tournaments: [] }
+
       
       setTournaments(tournamentsData.tournaments || [])
       setPlayerTournaments(playerTournamentsData)
