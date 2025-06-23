@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { API_ENDPOINTS, apiRequest } from '../config/api'; // Adjust path if necessary
+import { API_ENDPOINTS, apiRequest } from '../config/api';
+import { useNavigate } from 'react-router-dom'; // Add this line
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
+  const navigate = useNavigate(); // Add this line
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -21,7 +23,7 @@ const Login = () => {
         // Here you would typically store the user token/session and redirect
         // For now, just a message. In a real app, you'd use react-router-dom for navigation.
         console.log('User data:', response.data);
-        // Example: navigate('/dashboard');
+        navigate('/dashboard'); // <--- This line redirects after successful login
       } else {
         setMessage(`Login failed: ${response.error || 'Unknown error'}`);
       }
