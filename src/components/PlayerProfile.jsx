@@ -1,9 +1,7 @@
-import { API_ENDPOINTS, apiRequest } from '../config/api'
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Trophy, Calendar, Target, TrendingUp, Award, Users } from 'lucide-react'
+import { Trophy, Award, TrendingUp, Target, Calendar, Users } from 'lucide-react'
 
 const PlayerProfile = ({ user }) => {
   const [playerData, setPlayerData] = useState({ current_tournaments: [], past_tournaments: [] })
@@ -12,172 +10,153 @@ const PlayerProfile = ({ user }) => {
 
   useEffect(() => {
     fetchPlayerData()
-    fetchPlayerMatches()
   }, [user])
 
   const fetchPlayerData = async () => {
-  try {
-    const response = await apiRequest(API_ENDPOINTS.PLAYER_TOURNAMENTS(user.player_id))
-    const data = response.success ? response.data : { current_tournaments: [], past_tournaments: [] }
-    setPlayerData(data)
-  } catch (error) {
-    console.error('Error fetching player data:', error)
-  } finally {
-    setLoading(false)
+    try {
+      const [tournamentsResponse, matchesResponse] = await Promise.all([
+        fetch(`https://77h9ikcj6vgw.manus.space/api/players/${user.player_id}/tournaments` ),
+        fetch(`https://77h9ikcj6vgw.manus.space/api/players/${user.player_id}/matches` )
+      ])
+      
+      const tournamentsData = await tournamentsResponse.json()
+      const matchesData = await matchesResponse.json()
+      
+      setPlayerData(tournamentsData)
+      setPlayerMatches(matchesData.matches || [])
+    } catch (error) {
+      console.error('Error fetching player data:', error)
+    } finally {
+      setLoading(false)
+    }
   }
-}
-
-  const fetchPlayerMatches = async () => {
-  try {
-    // Note: You may need to add this endpoint to your API_ENDPOINTS if it doesn't exist
-    const response = await apiRequest(`${API_BASE_URL}/api/players/${user.player_id}/matches`)
-    const data = response.success ? response.data : { matches: [] }
-    setPlayerMatches(data.matches || [])
-  } catch (error) {
-    console.error('Error fetching player matches:', error)
-  }
-}
 
   const getStatusBadge = (status) => {
     const statusConfig = {
-      upcoming: { variant: 'secondary', label: 'Upcoming' },
-      in_progress: { variant: 'default', label: 'In Progress' },
-      completed: { variant: 'outline', label: 'Completed' }
+      upcoming: { className: 'badge badge-primary', label: 'Upcoming' },
+      in_progress: { className: 'badge badge-success', label: 'In Progress' },
+      completed: { className: 'badge badge-outline', label: 'Completed' }
     }
     
     const config = statusConfig[status] || statusConfig.upcoming
-    return <Badge variant={config.variant}>{config.label}</Badge>
+    return <span className={config.className}>{config.label}</span>
   }
-
-  // Calculate statistics
-  const totalTournaments = playerData.past_tournaments?.length || 0
-  const totalWins = playerData.past_tournaments?.reduce((sum, t) => sum + (t.wins || 0), 0) || 0
-  const totalLosses = playerData.past_tournaments?.reduce((sum, t) => sum + (t.losses || 0), 0) || 0
-  const totalScore = playerData.past_tournaments?.reduce((sum, t) => sum + (t.total_score || 0), 0) || 0
-  const winRate = totalWins + totalLosses > 0 ? ((totalWins / (totalWins + totalLosses)) * 100).toFixed(1) : 0
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">Loading profile...</div>
+      <div className="container py-8">
+        <div className="loading">Loading profile...</div>
       </div>
     )
   }
 
+  // Calculate statistics
+  const totalTournaments = (playerData.current_tournaments?.length || 0) + (playerData.past_tournaments?.length || 0)
+  const totalWins = playerData.past_tournaments?.reduce((total, t) => total + (t.wins || 0), 0) || 0
+  const totalGames = playerData.past_tournaments?.reduce((total, t) => total + (t.wins || 0) + (t.losses || 0), 0) || 0
+  const winRate = totalGames > 0 ? Math.round((totalWins / totalGames) * 100) : 0
+  const totalScore = playerData.past_tournaments?.reduce((total, t) => total + (t.total_score || 0), 0) || 0
+
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container py-8">
       {/* Header */}
-      <div className="flex items-center space-x-4 mb-8">
-        <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
-          <span className="text-2xl font-bold text-primary">
+      <div className="flex items-center space-x-6 mb-8">
+        <div className="w-20 h-20 bg-blue-50 rounded-xl flex items-center justify-center border-2 border-blue-200">
+          <span className="text-3xl font-bold text-blue-600">
             {user.name.charAt(0).toUpperCase()}
           </span>
         </div>
         <div>
-          <h1 className="text-3xl font-bold text-foreground">{user.name}</h1>
-          <p className="text-muted-foreground">{user.email}</p>
+          <h1 className="text-3xl font-bold text-primary mb-2">{user.name}</h1>
+          <p className="text-secondary text-lg">{user.email}</p>
+          {user.role && (
+            <span className="badge badge-primary mt-2">{user.role.replace('_', ' ').toUpperCase()}</span>
+          )}
         </div>
       </div>
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tournaments Played</CardTitle>
-            <Trophy className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalTournaments}</div>
-          </CardContent>
-        </Card>
+        <div className="stat-card">
+          <div className="stat-card-header">
+            <div className="stat-card-title">Tournaments Played</div>
+            <Trophy className="stat-card-icon" />
+          </div>
+          <div className="stat-card-value">{totalTournaments}</div>
+        </div>
         
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Wins</CardTitle>
-            <Award className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{totalWins}</div>
-          </CardContent>
-        </Card>
+        <div className="stat-card">
+          <div className="stat-card-header">
+            <div className="stat-card-title">Total Wins</div>
+            <Award className="stat-card-icon" />
+          </div>
+          <div className="stat-card-value text-green-600">{totalWins}</div>
+        </div>
         
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Win Rate</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{winRate}%</div>
-          </CardContent>
-        </Card>
+        <div className="stat-card">
+          <div className="stat-card-header">
+            <div className="stat-card-title">Win Rate</div>
+            <TrendingUp className="stat-card-icon" />
+          </div>
+          <div className="stat-card-value">{winRate}%</div>
+        </div>
         
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Score</CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalScore}</div>
-          </CardContent>
-        </Card>
+        <div className="stat-card">
+          <div className="stat-card-header">
+            <div className="stat-card-title">Total Score</div>
+            <Target className="stat-card-icon" />
+          </div>
+          <div className="stat-card-value">{totalScore}</div>
+        </div>
       </div>
 
-      <Tabs defaultValue="current" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="current">Current Tournaments</TabsTrigger>
-          <TabsTrigger value="history">Tournament History</TabsTrigger>
-          <TabsTrigger value="matches">Match History</TabsTrigger>
-        </TabsList>
+      {/* Tabs */}
+      <div className="card">
+        <div className="card-content p-0">
+          <Tabs defaultValue="current" className="w-full">
+            <div className="border-b border-gray-200 px-6 pt-6">
+              <TabsList className="grid w-full grid-cols-3 bg-gray-100 p-1 rounded-lg">
+                <TabsTrigger value="current" className="btn btn-secondary btn-sm">Current Tournaments</TabsTrigger>
+                <TabsTrigger value="history" className="btn btn-secondary btn-sm">Tournament History</TabsTrigger>
+                <TabsTrigger value="matches" className="btn btn-secondary btn-sm">Match History</TabsTrigger>
+              </TabsList>
+            </div>
 
-        <TabsContent value="current">
-          <Card>
-            <CardHeader>
-              <CardTitle>Current Tournaments</CardTitle>
-              <CardDescription>Tournaments you're currently participating in</CardDescription>
-            </CardHeader>
-            <CardContent>
+            <TabsContent value="current" className="p-6">
               {playerData.current_tournaments?.length > 0 ? (
                 <div className="space-y-4">
                   {playerData.current_tournaments.map((tournament) => (
-                    <div key={tournament.tournament_id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div>
-                        <h3 className="font-medium">{tournament.name}</h3>
-                        <p className="text-sm text-muted-foreground flex items-center space-x-4">
+                    <div key={tournament.tournament_id} className="tournament-item">
+                      <div className="tournament-info">
+                        <h3>{tournament.name}</h3>
+                        <p className="flex items-center space-x-4">
                           <span className="flex items-center space-x-1">
                             <Calendar className="h-3 w-3" />
                             <span>{new Date(tournament.date).toLocaleDateString()}</span>
                           </span>
                         </p>
                       </div>
-                      <div className="flex items-center space-x-2">
+                      <div className="tournament-actions">
                         {getStatusBadge(tournament.status)}
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-center text-muted-foreground py-8">
+                <div className="empty-state">
                   You're not currently enrolled in any tournaments.
-                </p>
+                </div>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </TabsContent>
 
-        <TabsContent value="history">
-          <Card>
-            <CardHeader>
-              <CardTitle>Tournament History</CardTitle>
-              <CardDescription>Your performance in past tournaments</CardDescription>
-            </CardHeader>
-            <CardContent>
+            <TabsContent value="history" className="p-6">
               {playerData.past_tournaments?.length > 0 ? (
                 <div className="space-y-4">
                   {playerData.past_tournaments.map((tournament) => (
-                    <div key={tournament.tournament_id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div>
-                        <h3 className="font-medium">{tournament.name}</h3>
-                        <p className="text-sm text-muted-foreground flex items-center space-x-4">
+                    <div key={tournament.tournament_id} className="tournament-item">
+                      <div className="tournament-info">
+                        <h3>{tournament.name}</h3>
+                        <p className="flex items-center space-x-4">
                           <span className="flex items-center space-x-1">
                             <Calendar className="h-3 w-3" />
                             <span>{new Date(tournament.date).toLocaleDateString()}</span>
@@ -192,10 +171,10 @@ const PlayerProfile = ({ user }) => {
                         <div className="flex items-center space-x-4">
                           <div className="text-sm">
                             <span className="font-medium text-green-600">{tournament.wins}W</span>
-                            <span className="text-muted-foreground"> - </span>
+                            <span className="text-secondary"> - </span>
                             <span className="font-medium text-red-600">{tournament.losses}L</span>
                           </div>
-                          <div className="text-sm text-muted-foreground">
+                          <div className="text-sm text-secondary">
                             Score: {tournament.total_score}
                           </div>
                         </div>
@@ -204,33 +183,24 @@ const PlayerProfile = ({ user }) => {
                   ))}
                 </div>
               ) : (
-                <p className="text-center text-muted-foreground py-8">
+                <div className="empty-state">
                   No tournament history available.
-                </p>
+                </div>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </TabsContent>
 
-        <TabsContent value="matches">
-          <Card>
-            <CardHeader>
-              <CardTitle>Match History</CardTitle>
-              <CardDescription>Detailed history of all your matches</CardDescription>
-            </CardHeader>
-            <CardContent>
+            <TabsContent value="matches" className="p-6">
               {playerMatches.length > 0 ? (
                 <div className="space-y-4">
                   {playerMatches.map((match) => (
-                    <div key={match.match_id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div>
-                        <h3 className="font-medium">vs {match.opponent_name}</h3>
-                        <p className="text-sm text-muted-foreground flex items-center space-x-4">
+                    <div key={match.match_id} className="tournament-item">
+                      <div className="tournament-info">
+                        <h3>vs {match.opponent_name}</h3>
+                        <p className="flex items-center space-x-4">
                           <span>{match.tournament_name}</span>
-                          <span>Round {match.round}</span>
-                          {match.completed_at && (
-                            <span>{new Date(match.completed_at).toLocaleDateString()}</span>
-                          )}
+                          <span className="text-xs text-secondary">
+                            {new Date(match.date).toLocaleDateString()}
+                          </span>
                         </p>
                       </div>
                       <div className="text-right">
@@ -241,19 +211,23 @@ const PlayerProfile = ({ user }) => {
                                 <span className="font-medium">
                                   {match.player1_id === user.player_id ? match.score_player1 : match.score_player2}
                                 </span>
-                                <span className="text-muted-foreground"> - </span>
+                                <span className="text-secondary"> - </span>
                                 <span className="font-medium">
                                   {match.player1_id === user.player_id ? match.score_player2 : match.score_player1}
                                 </span>
                               </div>
-                              <Badge variant={match.is_winner ? 'default' : 'secondary'}>
-                                {match.is_winner ? 'Won' : 'Lost'}
-                              </Badge>
+                              <span className={`badge ${
+                                (match.player1_id === user.player_id && match.score_player1 > match.score_player2) ||
+                                (match.player2_id === user.player_id && match.score_player2 > match.score_player1)
+                                  ? 'badge-success' : 'badge-outline'
+                              }`}>
+                                {(match.player1_id === user.player_id && match.score_player1 > match.score_player2) ||
+                                 (match.player2_id === user.player_id && match.score_player2 > match.score_player1)
+                                  ? 'Won' : 'Lost'}
+                              </span>
                             </>
                           ) : (
-                            <Badge variant="outline">
-                              {match.status === 'in_progress' ? 'In Progress' : 'Scheduled'}
-                            </Badge>
+                            <span className="badge badge-warning">Pending</span>
                           )}
                         </div>
                       </div>
@@ -261,17 +235,16 @@ const PlayerProfile = ({ user }) => {
                   ))}
                 </div>
               ) : (
-                <p className="text-center text-muted-foreground py-8">
+                <div className="empty-state">
                   No match history available.
-                </p>
+                </div>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
     </div>
   )
 }
 
 export default PlayerProfile
-

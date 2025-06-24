@@ -1,11 +1,5 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Trophy, Mail, Lock, User, AlertCircle } from 'lucide-react'
-import { API_ENDPOINTS } from '../config/api'
+import React, { useState } from 'react'
+import { API_ENDPOINTS, apiRequest } from '../config/api'
 
 const Register = ({ onLogin }) => {
   const [formData, setFormData] = useState({
@@ -14,8 +8,8 @@ const Register = ({ onLogin }) => {
     password: '',
     confirmPassword: ''
   })
+  const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
 
   const handleChange = (e) => {
     setFormData({
@@ -26,150 +20,152 @@ const Register = ({ onLogin }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setMessage('')
     setLoading(true)
-    setError('')
 
+    // Validation
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match')
+      setMessage('Passwords do not match')
+      setLoading(false)
+      return
+    }
+
+    if (formData.password.length < 6) {
+      setMessage('Password must be at least 6 characters long')
       setLoading(false)
       return
     }
 
     try {
-      const response = await fetch(API_ENDPOINTS.PLAYER_REGISTER, {
+      const response = await apiRequest(API_ENDPOINTS.PLAYER_REGISTER, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           name: formData.name,
           email: formData.email,
           password: formData.password
-        }),
+        })
       })
 
-      const data = await response.json()
-
-      if (response.ok) {
-        onLogin(data.player)
+      if (response.success) {
+        setMessage('Registration successful! Logging you in...')
+        // Auto-login after successful registration
+        if (onLogin && response.data && response.data.player) {
+          onLogin(response.data.player)
+        }
       } else {
-        setError(data.error || 'Registration failed')
+        setMessage(`Registration failed: ${response.error || 'Unknown error'}`)
       }
-    } catch (err) {
-      setError('Network error. Please try again.')
+    } catch (error) {
+      setMessage(`An error occurred: ${error.message}`)
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 to-secondary/10 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <Trophy className="h-12 w-12 text-primary" />
-          </div>
-          <CardTitle className="text-2xl">Create Account</CardTitle>
-          <CardDescription>
-            Join the Backgammon Tournament Manager community
-          </CardDescription>
-        </CardHeader>
-        
-        <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
-            {error && (
-              <div className="flex items-center space-x-2 text-destructive text-sm">
-                <AlertCircle className="h-4 w-4" />
-                <span>{error}</span>
-              </div>
-            )}
-            
-            <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
-              <div className="relative">
-                <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="name"
-                  name="name"
-                  type="text"
-                  placeholder="Enter your full name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  className="pl-10"
-                  required
-                />
-              </div>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
+      <div className="card" style={{ maxWidth: '500px', width: '100%' }}>
+        <div className="card-header text-center">
+          <h2 className="card-title text-2xl">Create Account</h2>
+          <p className="card-description">Join the tournament community</p>
+        </div>
+        <div className="card-content">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-primary mb-2">
+                Full Name
+              </label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                placeholder="Enter your full name"
+              />
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="Enter your email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="pl-10"
-                  required
-                />
-              </div>
+
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-primary mb-2">
+                Email Address
+              </label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                placeholder="Enter your email"
+              />
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  placeholder="Create a password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  className="pl-10"
-                  required
-                />
-              </div>
+
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-primary mb-2">
+                Password
+              </label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                placeholder="Create a password (min. 6 characters)"
+              />
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  placeholder="Confirm your password"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  className="pl-10"
-                  required
-                />
-              </div>
+
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-primary mb-2">
+                Confirm Password
+              </label>
+              <input
+                type="password"
+                id="confirmPassword"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                placeholder="Confirm your password"
+              />
             </div>
-          </CardContent>
-          
-          <CardFooter className="flex flex-col space-y-4">
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Creating account...' : 'Create Account'}
-            </Button>
-            
-            <p className="text-sm text-center text-muted-foreground">
+
+            <button 
+              type="submit" 
+              disabled={loading}
+              className="btn btn-primary btn-lg w-full"
+            >
+              {loading ? 'Creating Account...' : 'Create Account'}
+            </button>
+          </form>
+
+          {message && (
+            <div className={`mt-4 p-3 rounded-lg text-sm ${
+              message.includes('failed') || message.includes('error') || message.includes('do not match') || message.includes('must be')
+                ? 'bg-red-50 text-red-700 border border-red-200' 
+                : 'bg-green-50 text-green-700 border border-green-200'
+            }`}>
+              {message}
+            </div>
+          )}
+
+          <div className="mt-6 text-center">
+            <p className="text-sm text-secondary">
               Already have an account?{' '}
-              <Link to="/login" className="text-primary hover:underline">
-                Sign in
-              </Link>
+              <a href="/login" className="text-blue-600 hover:text-blue-700 font-medium">
+                Sign in here
+              </a>
             </p>
-          </CardFooter>
-        </form>
-      </Card>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
 
 export default Register
-
