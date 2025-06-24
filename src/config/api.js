@@ -13,7 +13,7 @@ const getApiBaseUrl = () => {
     return 'http://localhost:5000';
   } else {
     // Production environment - using the existing backend URL
-    return 'https://77h9ikcj6vgw.manus.space';
+    return 'https://tournament.backgammonconnection.com';
   }
 };
 
