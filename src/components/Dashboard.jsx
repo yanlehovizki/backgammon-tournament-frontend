@@ -69,7 +69,7 @@ const Dashboard = ({ user } ) => {
           <h1 className="text-3xl font-bold text-primary mb-2">Dashboard</h1>
           <p className="text-secondary">Welcome back, {user.name}!</p>
         </div>
-        {user.role === 'tournament_administrator' && (
+        {user.role === 'super_user' && (
           <button 
             className="btn btn-primary"
             onClick={() => setShowCreateModal(true)}

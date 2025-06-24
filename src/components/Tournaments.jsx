@@ -60,7 +60,7 @@ const Tournaments = ({ user }) => {
           <h1 className="text-3xl font-bold text-primary mb-2">Tournaments</h1>
           <p className="text-secondary">Browse and join tournaments</p>
         </div>
-        {user.role === 'tournament_administrator' && (
+        {user.role === 'super_user' && (
           <button className="btn btn-primary">
             <Plus className="h-4 w-4" />
             <span>Create Tournament</span>
