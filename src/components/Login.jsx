@@ -6,6 +6,7 @@ import { Input } from './ui/input'
 import { Label } from './ui/label'
 import { Alert, AlertDescription } from './ui/alert'
 import { Eye, EyeOff, LogIn } from 'lucide-react'
+import { API_ENDPOINTS } from '../config/api'
 
 const Login = ({ onLogin }) => {
   const [formData, setFormData] = useState({
@@ -23,7 +24,7 @@ const Login = ({ onLogin }) => {
     setError('')
 
     try {
-      const response = await fetch('https://77h9ikcj6vgw.manus.space/api/players/login', {
+      const response = await fetch(API_ENDPOINTS.PLAYER_LOGIN, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
