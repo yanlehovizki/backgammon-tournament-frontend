@@ -16,23 +16,18 @@ function App() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('user');
+    // Check if user is logged in (you could check localStorage or make an API call)
+    const savedUser = localStorage.getItem('user')
     if (savedUser) {
-      const parsedUser = JSON.parse(savedUser);
-      console.log('App.jsx: useEffect found savedUser:', parsedUser); // ADD THIS LINE
-      setUser(parsedUser);
-    } else {
-      console.log('App.jsx: useEffect found no savedUser in localStorage'); // ADD THIS LINE
+      setUser(JSON.parse(savedUser))
     }
-    setLoading(false);
-  }, []);
+    setLoading(false)
+  }, [])
 
   const handleLogin = (userData) => {
-    console.log('App.jsx: handleLogin received userData:', userData);
     setUser(userData)
-    localStorage.setItem('user', JSON.stringify(userData));
-    console.log('App.jsx: User set in state and localStorage:', userData);
-  };
+    localStorage.setItem('user', JSON.stringify(userData))
+  }
 
   const handleLogout = () => {
     setUser(null)
@@ -77,3 +72,4 @@ function App() {
 }
 
 export default App
+

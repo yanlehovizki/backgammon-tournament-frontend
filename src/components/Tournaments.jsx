@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Plus, Calendar, Users, Trophy, Search, Edit } from 'lucide-react'
 import { API_ENDPOINTS, apiRequest } from '../config/api'
+import CreateTournamentModal from './CreateTournamentModal'
 import EditTournamentModal from './EditTournamentModal'
 
 const Tournaments = ({ user }) => {
@@ -10,6 +11,7 @@ const Tournaments = ({ user }) => {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
+  const [showCreateModal, setShowCreateModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [selectedTournament, setSelectedTournament] = useState(null)
 
@@ -28,6 +30,11 @@ const Tournaments = ({ user }) => {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleTournamentCreated = (newTournament) => {
+    setTournaments(prev => [newTournament, ...prev])
+    setShowCreateModal(false)
   }
 
   const handleEditTournament = (tournament) => {
@@ -78,7 +85,10 @@ const Tournaments = ({ user }) => {
         </div>
         
         {user.role === 'super_user' && (
-          <button className="btn btn-primary">
+          <button 
+            className="btn btn-primary"
+            onClick={() => setShowCreateModal(true)}
+          >
             <Plus className="h-4 w-4" />
             <span>Create Tournament</span>
           </button>
@@ -169,6 +179,17 @@ const Tournaments = ({ user }) => {
                     <Trophy className="h-4 w-4 mr-2" />
                     <span>Max: {tournament.max_players} players</span>
                   </div>
+                  {tournament.entry_fee && (
+                    <div className="flex items-center text-sm text-secondary">
+                      <span className="font-medium">Entry Fee: ${tournament.entry_fee}</span>
+                    </div>
+                  )}
+                  {tournament.bracket && (
+                    <div className="flex items-center text-sm text-green-600">
+                      <Trophy className="h-4 w-4 mr-2" />
+                      <span>Bracket Generated</span>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="space-y-2">
@@ -204,6 +225,14 @@ const Tournaments = ({ user }) => {
         </div>
       )}
 
+      {/* Create Tournament Modal */}
+      <CreateTournamentModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onTournamentCreated={handleTournamentCreated}
+        user={user}
+      />
+
       {/* Edit Tournament Modal */}
       <EditTournamentModal
         isOpen={showEditModal}
@@ -220,3 +249,4 @@ const Tournaments = ({ user }) => {
 }
 
 export default Tournaments
+

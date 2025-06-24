@@ -12,8 +12,8 @@ const getApiBaseUrl = () => {
     // Development environment
     return 'http://localhost:5000';
   } else {
-    // Production environment - this will be updated during deployment
-    return 'http://35.171.40.200';
+    // Production environment - using the existing backend URL
+    return 'https://77h9ikcj6vgw.manus.space';
   }
 };
 
@@ -35,6 +35,7 @@ export const API_ENDPOINTS = {
   TOURNAMENT_UNENROLL: (tournamentId) => `${API_BASE_URL}/api/tournaments/${tournamentId}/unenroll`,
   TOURNAMENT_START: (tournamentId) => `${API_BASE_URL}/api/tournaments/${tournamentId}/start`,
   TOURNAMENT_MATCHES: (tournamentId) => `${API_BASE_URL}/api/tournaments/${tournamentId}/matches`,
+  TOURNAMENT_UPDATE_BRACKET: (tournamentId) => `${API_BASE_URL}/api/tournaments/${tournamentId}/bracket`,
   
   // Match endpoints
   MATCH_RESULT: (matchId) => `${API_BASE_URL}/api/matches/${matchId}/result`,

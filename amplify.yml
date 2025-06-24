@@ -1,14 +1,33 @@
-version: 1
-applications:
-  - frontend:
-      phases:
-        preBuild:
-          commands:
-            - npm install --legacy-peer-deps # We're adding this flag here
-        build:
-          commands:
-            - npm run build
-      artifacts:
-        baseDirectory: dist
-        files:
-          - '**/*'
+{
+  "version": 1,
+  "applications": [
+    {
+      "frontend": {
+        "phases": {
+          "preBuild": {
+            "commands": [
+              "npm ci"
+            ]
+          },
+          "build": {
+            "commands": [
+              "npm run build"
+            ]
+          }
+        },
+        "artifacts": {
+          "baseDirectory": "dist",
+          "files": [
+            "**/*"
+          ]
+        },
+        "cache": {
+          "paths": [
+            "node_modules/**/*"
+          ]
+        }
+      }
+    }
+  ]
+}
+
