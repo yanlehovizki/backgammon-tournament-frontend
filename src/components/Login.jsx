@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
 import { API_ENDPOINTS, apiRequest } from '../config/api';
-// import { useNavigate } from 'react-router-dom'; // REMOVE THIS LINE
 
-const Login = ({ onLogin }) => { // ADD onLogin as a prop
+const Login = ({ onLogin }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
-  // const navigate = useNavigate(); // REMOVE THIS LINE
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setMessage(''); // Clear previous messages
+    setMessage('');
+    setLoading(true);
 
     try {
       const response = await apiRequest(API_ENDPOINTS.PLAYER_LOGIN, {
@@ -20,49 +20,85 @@ const Login = ({ onLogin }) => { // ADD onLogin as a prop
 
       if (response.success) {
         setMessage('Login successful!');
-        console.log('Login.jsx: API response data:', response.data); // ADD THIS LINE
-        // Call the onLogin prop to update the user state in App.jsx
+        console.log('Login.jsx: API response data:', response.data);
         if (onLogin) {
-          onLogin(response.data.player); // <--- CHANGED THIS LINE
+          onLogin(response.data.player);
         }
-        // No explicit navigate here, App.jsx handles redirection based on user state
       } else {
         setMessage(`Login failed: ${response.error || 'Unknown error'}`);
       }
     } catch (error) {
       setMessage(`An error occurred: ${error.message}`);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div style={{ maxWidth: '400px', margin: '50px auto', padding: '20px', border: '1px solid #ccc', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-      <h2>Login</h2>
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '15px' }}>
-          <label htmlFor="email" style={{ display: 'block', marginBottom: '5px' }}>Email:</label>
-          <input
-            type="email"
-            id="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            style={{ width: '100%', padding: '8px', boxSizing: 'border-box', borderRadius: '4px', border: '1px solid #ddd' }}
-          />
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
+      <div className="card" style={{ maxWidth: '400px', width: '100%' }}>
+        <div className="card-header text-center">
+          <h2 className="card-title text-2xl">Welcome Back</h2>
+          <p className="card-description">Sign in to your tournament account</p>
         </div>
-        <div style={{ marginBottom: '15px' }}>
-          <label htmlFor="password" style={{ display: 'block', marginBottom: '5px' }}>Password:</label>
-          <input
-            type="password"
-            id="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            style={{ width: '100%', padding: '8px', boxSizing: 'border-box', borderRadius: '4px', border: '1px solid #ddd' }}
-          />
+        <div className="card-content">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-primary mb-2">
+                Email Address
+              </label>
+              <input
+                type="email"
+                id="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                placeholder="Enter your email"
+              />
+            </div>
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-primary mb-2">
+                Password
+              </label>
+              <input
+                type="password"
+                id="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                placeholder="Enter your password"
+              />
+            </div>
+            <button 
+              type="submit" 
+              disabled={loading}
+              className="btn btn-primary btn-lg w-full"
+            >
+              {loading ? 'Signing in...' : 'Sign In'}
+            </button>
+          </form>
+          {message && (
+            <div className={`mt-4 p-3 rounded-lg text-sm ${
+              message.includes('failed') || message.includes('error') 
+                ? 'bg-red-50 text-red-700 border border-red-200' 
+                : 'bg-green-50 text-green-700 border border-green-200'
+            }`}>
+              {message}
+            </div>
+           )}
+          
+          <div className="mt-6 text-center">
+            <p className="text-sm text-secondary">
+              Don't have an account?{' '}
+              <a href="/register" className="text-blue-600 hover:text-blue-700 font-medium">
+                Create one here
+              </a>
+            </p>
+          </div>
         </div>
-        <button type="submit" style={{ width: '100%', padding: '10px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Login</button>
-      </form>
-      {message && <p style={{ marginTop: '15px', color: message.includes('failed') || message.includes('error') ? 'red' : 'green' }}>{message}</p>}
+      </div>
     </div>
   );
 };

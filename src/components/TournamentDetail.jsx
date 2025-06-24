@@ -1,423 +1,304 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Trophy, Calendar, Users, Play, UserPlus, UserMinus, Target } from 'lucide-react'
+import { Calendar, Users, Trophy, Clock, Target, Award, ArrowLeft } from 'lucide-react'
 
 const TournamentDetail = ({ user }) => {
   const { id } = useParams()
   const [tournament, setTournament] = useState(null)
-  const [matches, setMatches] = useState({})
+  const [participants, setParticipants] = useState([])
+  const [matches, setMatches] = useState([])
   const [loading, setLoading] = useState(true)
   const [enrolling, setEnrolling] = useState(false)
-  const [starting, setStarting] = useState(false)
-  const [showMatchDialog, setShowMatchDialog] = useState(false)
-  const [selectedMatch, setSelectedMatch] = useState(null)
-  const [matchResult, setMatchResult] = useState({
-    score_player1: '',
-    score_player2: '',
-    winner_id: ''
-  })
+  const [isEnrolled, setIsEnrolled] = useState(false)
 
   useEffect(() => {
-    fetchTournamentDetails()
-    fetchMatches()
+    fetchTournamentData()
   }, [id])
 
-  const fetchTournamentDetails = async () => {
+  const fetchTournamentData = async () => {
     try {
-      const response = await fetch(`https://77h9ikcj6vgw.manus.space/api/tournaments/${id}`)
-      const data = await response.json()
-      setTournament(data.tournament)
+      const [tournamentResponse, participantsResponse, matchesResponse] = await Promise.all([
+        fetch(`https://77h9ikcj6vgw.manus.space/api/tournaments/${id}` ),
+        fetch(`https://77h9ikcj6vgw.manus.space/api/tournaments/${id}/participants` ),
+        fetch(`https://77h9ikcj6vgw.manus.space/api/tournaments/${id}/matches` )
+      ])
+
+      const tournamentData = await tournamentResponse.json()
+      const participantsData = await participantsResponse.json()
+      const matchesData = await matchesResponse.json()
+
+      setTournament(tournamentData.tournament)
+      setParticipants(participantsData.participants || [])
+      setMatches(matchesData.matches || [])
+      
+      // Check if user is enrolled
+      const userEnrolled = participantsData.participants?.some(p => p.player_id === user.player_id)
+      setIsEnrolled(userEnrolled)
     } catch (error) {
-      console.error('Error fetching tournament details:', error)
+      console.error('Error fetching tournament data:', error)
     } finally {
       setLoading(false)
     }
   }
 
-  const fetchMatches = async () => {
-    try {
-      const response = await fetch(`https://77h9ikcj6vgw.manus.space/api/tournaments/${id}/matches`)
-      const data = await response.json()
-      setMatches(data.matches_by_round || {})
-    } catch (error) {
-      console.error('Error fetching matches:', error)
-    }
-  }
-
-  const handleEnrollment = async (action) => {
+  const handleEnroll = async () => {
     setEnrolling(true)
     try {
-      const url = `https://77h9ikcj6vgw.manus.space/api/tournaments/${id}/${action}`
-      const method = action === 'enroll' ? 'POST' : 'DELETE'
-      
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ player_id: user.player_id }),
+      const response = await fetch(`https://77h9ikcj6vgw.manus.space/api/tournaments/${id}/enroll`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ player_id: user.player_id } )
       })
 
-      const data = await response.json()
-
       if (response.ok) {
-        fetchTournamentDetails() // Refresh tournament data
-      } else {
-        alert(data.error || `Failed to ${action}`)
+        setIsEnrolled(true)
+        fetchTournamentData() // Refresh data
       }
     } catch (error) {
-      alert('Network error. Please try again.')
+      console.error('Error enrolling:', error)
     } finally {
       setEnrolling(false)
     }
   }
 
-  const handleStartTournament = async () => {
-    setStarting(true)
-    try {
-      const response = await fetch(`https://77h9ikcj6vgw.manus.space/api/tournaments/${id}/start`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        fetchTournamentDetails()
-        fetchMatches()
-      } else {
-        alert(data.error || 'Failed to start tournament')
-      }
-    } catch (error) {
-      alert('Network error. Please try again.')
-    } finally {
-      setStarting(false)
-    }
-  }
-
-  const handleMatchResult = async (e) => {
-    e.preventDefault()
-    try {
-      const response = await fetch(`https://77h9ikcj6vgw.manus.space/api/matches/${selectedMatch.match_id}/result`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(matchResult),
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        setShowMatchDialog(false)
-        setSelectedMatch(null)
-        setMatchResult({ score_player1: '', score_player2: '', winner_id: '' })
-        fetchMatches()
-        fetchTournamentDetails()
-      } else {
-        alert(data.error || 'Failed to update match result')
-      }
-    } catch (error) {
-      alert('Network error. Please try again.')
-    }
-  }
-
   const getStatusBadge = (status) => {
     const statusConfig = {
-      upcoming: { variant: 'secondary', label: 'Upcoming' },
-      in_progress: { variant: 'default', label: 'In Progress' },
-      completed: { variant: 'outline', label: 'Completed' }
+      upcoming: { className: 'badge badge-primary', label: 'Upcoming' },
+      in_progress: { className: 'badge badge-success', label: 'In Progress' },
+      completed: { className: 'badge badge-outline', label: 'Completed' }
     }
     
     const config = statusConfig[status] || statusConfig.upcoming
-    return <Badge variant={config.variant}>{config.label}</Badge>
+    return <span className={config.className}>{config.label}</span>
   }
 
-  const isEnrolled = tournament?.enrolled_players?.some(p => p.player_id === user.player_id)
+  const getMatchStatusBadge = (status) => {
+    const statusConfig = {
+      pending: { className: 'badge badge-warning', label: 'Pending' },
+      in_progress: { className: 'badge badge-primary', label: 'In Progress' },
+      completed: { className: 'badge badge-success', label: 'Completed' }
+    }
+    
+    const config = statusConfig[status] || statusConfig.pending
+    return <span className={config.className}>{config.label}</span>
+  }
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">Loading tournament details...</div>
+      <div className="container py-8">
+        <div className="loading">Loading tournament details...</div>
       </div>
     )
   }
 
   if (!tournament) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">Tournament not found</div>
+      <div className="container py-8">
+        <div className="empty-state">Tournament not found.</div>
       </div>
     )
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="flex justify-between items-start mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">{tournament.name}</h1>
-          <div className="flex items-center space-x-4 text-muted-foreground">
-            <span className="flex items-center space-x-1">
-              <Calendar className="h-4 w-4" />
-              <span>{new Date(tournament.date).toLocaleDateString()}</span>
-            </span>
-            <span className="flex items-center space-x-1">
-              <Users className="h-4 w-4" />
-              <span>{tournament.enrollment_count} players</span>
-            </span>
-            {getStatusBadge(tournament.status)}
+    <div className="container py-8">
+      {/* Back Button */}
+      <button 
+        onClick={() => window.history.back()} 
+        className="btn btn-secondary mb-6"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        <span>Back to Tournaments</span>
+      </button>
+
+      {/* Tournament Header */}
+      <div className="card mb-8">
+        <div className="card-header">
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-3xl font-bold text-primary mb-2">{tournament.name}</h1>
+              <p className="text-secondary text-lg mb-4">{tournament.description}</p>
+              {getStatusBadge(tournament.status)}
+            </div>
+            {tournament.status === 'upcoming' && !isEnrolled && (
+              <button 
+                onClick={handleEnroll}
+                disabled={enrolling || participants.length >= tournament.max_players}
+                className="btn btn-primary"
+              >
+                {enrolling ? 'Enrolling...' : 'Join Tournament'}
+              </button>
+            )}
+            {isEnrolled && (
+              <span className="badge badge-success">Enrolled</span>
+            )}
           </div>
-        </div>
-        
-        <div className="flex items-center space-x-2">
-          {tournament.status === 'upcoming' && (
-            <>
-              {isEnrolled ? (
-                <Button 
-                  variant="outline" 
-                  onClick={() => handleEnrollment('unenroll')}
-                  disabled={enrolling}
-                  className="flex items-center space-x-2"
-                >
-                  <UserMinus className="h-4 w-4" />
-                  <span>{enrolling ? 'Leaving...' : 'Leave Tournament'}</span>
-                </Button>
-              ) : (
-                <Button 
-                  onClick={() => handleEnrollment('enroll')}
-                  disabled={enrolling}
-                  className="flex items-center space-x-2"
-                >
-                  <UserPlus className="h-4 w-4" />
-                  <span>{enrolling ? 'Joining...' : 'Join Tournament'}</span>
-                </Button>
-              )}
-              
-              {tournament.enrollment_count >= 2 && (
-                <Button 
-                  onClick={handleStartTournament}
-                  disabled={starting}
-                  className="flex items-center space-x-2"
-                >
-                  <Play className="h-4 w-4" />
-                  <span>{starting ? 'Starting...' : 'Start Tournament'}</span>
-                </Button>
-              )}
-            </>
-          )}
         </div>
       </div>
 
-      <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="players">Players</TabsTrigger>
-          <TabsTrigger value="bracket">Bracket</TabsTrigger>
-        </TabsList>
+      {/* Tournament Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="stat-card">
+          <div className="stat-card-header">
+            <div className="stat-card-title">Tournament Date</div>
+            <Calendar className="stat-card-icon" />
+          </div>
+          <div className="stat-card-value text-lg">
+            {new Date(tournament.date).toLocaleDateString()}
+          </div>
+        </div>
+        
+        <div className="stat-card">
+          <div className="stat-card-header">
+            <div className="stat-card-title">Participants</div>
+            <Users className="stat-card-icon" />
+          </div>
+          <div className="stat-card-value">
+            {participants.length}/{tournament.max_players}
+          </div>
+        </div>
+        
+        <div className="stat-card">
+          <div className="stat-card-header">
+            <div className="stat-card-title">Total Matches</div>
+            <Trophy className="stat-card-icon" />
+          </div>
+          <div className="stat-card-value">{matches.length}</div>
+        </div>
+        
+        <div className="stat-card">
+          <div className="stat-card-header">
+            <div className="stat-card-title">Status</div>
+            <Target className="stat-card-icon" />
+          </div>
+          <div className="stat-card-value text-lg">
+            {getStatusBadge(tournament.status)}
+          </div>
+        </div>
+      </div>
 
-        <TabsContent value="overview">
-          <Card>
-            <CardHeader>
-              <CardTitle>Tournament Information</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {tournament.rules ? (
-                <div className="prose max-w-none">
-                  <p className="text-muted-foreground">{tournament.rules}</p>
+      {/* Tabs */}
+      <div className="card">
+        <div className="card-content p-0">
+          <Tabs defaultValue="participants" className="w-full">
+            <div className="border-b border-gray-200 px-6 pt-6">
+              <TabsList className="grid w-full grid-cols-3 bg-gray-100 p-1 rounded-lg">
+                <TabsTrigger value="participants" className="btn btn-secondary btn-sm">Participants</TabsTrigger>
+                <TabsTrigger value="matches" className="btn btn-secondary btn-sm">Matches</TabsTrigger>
+                <TabsTrigger value="standings" className="btn btn-secondary btn-sm">Standings</TabsTrigger>
+              </TabsList>
+            </div>
+
+            <TabsContent value="participants" className="p-6">
+              {participants.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {participants.map((participant, index) => (
+                    <div key={participant.player_id} className="tournament-item">
+                      <div className="tournament-info">
+                        <h3 className="flex items-center space-x-2">
+                          <span>{participant.name}</span>
+                          {index < 3 && tournament.status === 'completed' && (
+                            <Award className="h-4 w-4 text-yellow-500" />
+                          )}
+                        </h3>
+                        <p>{participant.email}</p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm text-secondary">
+                          Player #{index + 1}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : (
-                <p className="text-muted-foreground">No rules or description provided.</p>
+                <div className="empty-state">
+                  No participants enrolled yet.
+                </div>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </TabsContent>
 
-        <TabsContent value="players">
-          <Card>
-            <CardHeader>
-              <CardTitle>Enrolled Players ({tournament.enrollment_count})</CardTitle>
-              <CardDescription>Players participating in this tournament</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {tournament.enrolled_players?.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {tournament.enrolled_players.map((player) => (
-                    <div key={player.player_id} className="flex items-center space-x-3 p-3 border rounded-lg">
-                      <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                        <span className="text-sm font-medium text-primary">
-                          {player.name.charAt(0).toUpperCase()}
-                        </span>
-                      </div>
-                      <div>
-                        <p className="font-medium">{player.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          Joined {new Date(player.enrolled_at).toLocaleDateString()}
+            <TabsContent value="matches" className="p-6">
+              {matches.length > 0 ? (
+                <div className="space-y-4">
+                  {matches.map((match) => (
+                    <div key={match.match_id} className="tournament-item">
+                      <div className="tournament-info">
+                        <h3>{match.player1_name} vs {match.player2_name}</h3>
+                        <p className="flex items-center space-x-4">
+                          <span className="flex items-center space-x-1">
+                            <Clock className="h-3 w-3" />
+                            <span>{new Date(match.scheduled_time).toLocaleString()}</span>
+                          </span>
                         </p>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-center text-muted-foreground py-8">
-                  No players enrolled yet.
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="bracket">
-          <Card>
-            <CardHeader>
-              <CardTitle>Tournament Bracket</CardTitle>
-              <CardDescription>Match progression and results</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {Object.keys(matches).length > 0 ? (
-                <div className="space-y-6">
-                  {Object.entries(matches).map(([round, roundMatches]) => (
-                    <div key={round}>
-                      <h3 className="text-lg font-semibold mb-4">Round {round}</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {roundMatches.map((match) => (
-                          <Card key={match.match_id} className="p-4">
-                            <div className="flex justify-between items-center">
-                              <div className="space-y-2">
-                                <div className="flex items-center justify-between">
-                                  <span className="font-medium">{match.player1_name}</span>
-                                  <span className="text-sm text-muted-foreground">
-                                    {match.status === 'completed' ? match.score_player1 : '-'}
-                                  </span>
-                                </div>
-                                <div className="text-sm text-muted-foreground">vs</div>
-                                <div className="flex items-center justify-between">
-                                  <span className="font-medium">{match.player2_name}</span>
-                                  <span className="text-sm text-muted-foreground">
-                                    {match.status === 'completed' ? match.score_player2 : '-'}
-                                  </span>
-                                </div>
-                              </div>
-                              
-                              <div className="flex flex-col items-end space-y-2">
-                                <Badge variant={match.status === 'completed' ? 'default' : 'secondary'}>
-                                  {match.status === 'completed' ? 'Completed' : 'Pending'}
-                                </Badge>
-                                
-                                {match.status === 'completed' && match.winner_name && (
-                                  <div className="text-sm text-primary font-medium">
-                                    Winner: {match.winner_name}
-                                  </div>
-                                )}
-                                
-                                {match.status !== 'completed' && tournament.status === 'in_progress' && (
-                                  <Dialog open={showMatchDialog && selectedMatch?.match_id === match.match_id} onOpenChange={(open) => {
-                                    setShowMatchDialog(open)
-                                    if (!open) setSelectedMatch(null)
-                                  }}>
-                                    <DialogTrigger asChild>
-                                      <Button 
-                                        size="sm" 
-                                        variant="outline"
-                                        onClick={() => setSelectedMatch(match)}
-                                        className="flex items-center space-x-1"
-                                      >
-                                        <Target className="h-3 w-3" />
-                                        <span>Enter Result</span>
-                                      </Button>
-                                    </DialogTrigger>
-                                    <DialogContent>
-                                      <DialogHeader>
-                                        <DialogTitle>Enter Match Result</DialogTitle>
-                                        <DialogDescription>
-                                          {match.player1_name} vs {match.player2_name}
-                                        </DialogDescription>
-                                      </DialogHeader>
-                                      
-                                      <form onSubmit={handleMatchResult}>
-                                        <div className="space-y-4">
-                                          <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                              <Label>{match.player1_name} Score</Label>
-                                              <Input
-                                                type="number"
-                                                min="0"
-                                                value={matchResult.score_player1}
-                                                onChange={(e) => setMatchResult({ ...matchResult, score_player1: e.target.value })}
-                                                required
-                                              />
-                                            </div>
-                                            <div className="space-y-2">
-                                              <Label>{match.player2_name} Score</Label>
-                                              <Input
-                                                type="number"
-                                                min="0"
-                                                value={matchResult.score_player2}
-                                                onChange={(e) => setMatchResult({ ...matchResult, score_player2: e.target.value })}
-                                                required
-                                              />
-                                            </div>
-                                          </div>
-                                          
-                                          <div className="space-y-2">
-                                            <Label>Winner</Label>
-                                            <select 
-                                              className="w-full p-2 border rounded"
-                                              value={matchResult.winner_id}
-                                              onChange={(e) => setMatchResult({ ...matchResult, winner_id: e.target.value })}
-                                              required
-                                            >
-                                              <option value="">Select winner</option>
-                                              <option value={match.player1_id}>{match.player1_name}</option>
-                                              <option value={match.player2_id}>{match.player2_name}</option>
-                                            </select>
-                                          </div>
-                                        </div>
-                                        
-                                        <DialogFooter className="mt-6">
-                                          <Button type="button" variant="outline" onClick={() => setShowMatchDialog(false)}>
-                                            Cancel
-                                          </Button>
-                                          <Button type="submit">
-                                            Save Result
-                                          </Button>
-                                        </DialogFooter>
-                                      </form>
-                                    </DialogContent>
-                                  </Dialog>
-                                )}
-                              </div>
+                      <div className="text-right">
+                        <div className="flex items-center space-x-4">
+                          {match.status === 'completed' ? (
+                            <div className="text-sm">
+                              <span className="font-medium">{match.score_player1}</span>
+                              <span className="text-secondary"> - </span>
+                              <span className="font-medium">{match.score_player2}</span>
                             </div>
-                          </Card>
-                        ))}
+                          ) : (
+                            <div className="text-sm text-secondary">vs</div>
+                          )}
+                          {getMatchStatusBadge(match.status)}
+                        </div>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-center text-muted-foreground py-8">
-                  {tournament.status === 'upcoming' 
-                    ? 'Bracket will be generated when tournament starts.'
-                    : 'No matches available.'
-                  }
-                </p>
+                <div className="empty-state">
+                  No matches scheduled yet.
+                </div>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            </TabsContent>
+
+            <TabsContent value="standings" className="p-6">
+              {participants.length > 0 ? (
+                <div className="space-y-4">
+                  {participants
+                    .sort((a, b) => (b.total_score || 0) - (a.total_score || 0))
+                    .map((participant, index) => (
+                    <div key={participant.player_id} className="tournament-item">
+                      <div className="tournament-info">
+                        <h3 className="flex items-center space-x-2">
+                          <span className="text-lg font-bold text-primary">#{index + 1}</span>
+                          <span>{participant.name}</span>
+                          {index === 0 && tournament.status === 'completed' && (
+                            <Trophy className="h-5 w-5 text-yellow-500" />
+                          )}
+                        </h3>
+                        <p className="flex items-center space-x-4">
+                          <span className="text-green-600">{participant.wins || 0}W</span>
+                          <span className="text-red-600">{participant.losses || 0}L</span>
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-primary">
+                          {participant.total_score || 0} pts
+                        </div>
+                        <div className="text-sm text-secondary">
+                          {participant.matches_played || 0} matches
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-state">
+                  No standings available yet.
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
     </div>
   )
 }
 
 export default TournamentDetail
-

@@ -1,25 +1,13 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Trophy, Plus, Calendar, Users, Search } from 'lucide-react'
+import { Plus, Calendar, Users, Trophy, Search } from 'lucide-react'
 
 const Tournaments = ({ user }) => {
   const [tournaments, setTournaments] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [showCreateDialog, setShowCreateDialog] = useState(false)
-  const [newTournament, setNewTournament] = useState({
-    name: '',
-    date: '',
-    rules: ''
-  })
-  const [creating, setCreating] = useState(false)
+  const [filterStatus, setFilterStatus] = useState('all')
 
   useEffect(() => {
     fetchTournaments()
@@ -27,7 +15,7 @@ const Tournaments = ({ user }) => {
 
   const fetchTournaments = async () => {
     try {
-      const response = await fetch('https://77h9ikcj6vgw.manus.space/api/tournaments')
+      const response = await fetch('https://77h9ikcj6vgw.manus.space/api/tournaments' )
       const data = await response.json()
       setTournaments(data.tournaments || [])
     } catch (error) {
@@ -37,208 +25,128 @@ const Tournaments = ({ user }) => {
     }
   }
 
-  const handleCreateTournament = async (e) => {
-    e.preventDefault()
-    setCreating(true)
-
-    try {
-      const response = await fetch('https://77h9ikcj6vgw.manus.space/api/tournaments', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newTournament),
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        setTournaments([data.tournament, ...tournaments])
-        setShowCreateDialog(false)
-        setNewTournament({ name: '', date: '', rules: '' })
-      } else {
-        alert(data.error || 'Failed to create tournament')
-      }
-    } catch (error) {
-      alert('Network error. Please try again.')
-    } finally {
-      setCreating(false)
-    }
-  }
-
   const getStatusBadge = (status) => {
     const statusConfig = {
-      upcoming: { variant: 'secondary', label: 'Upcoming' },
-      in_progress: { variant: 'default', label: 'In Progress' },
-      completed: { variant: 'outline', label: 'Completed' }
+      upcoming: { className: 'badge badge-primary', label: 'Upcoming' },
+      in_progress: { className: 'badge badge-success', label: 'In Progress' },
+      completed: { className: 'badge badge-outline', label: 'Completed' }
     }
     
     const config = statusConfig[status] || statusConfig.upcoming
-    return <Badge variant={config.variant}>{config.label}</Badge>
+    return <span className={config.className}>{config.label}</span>
   }
 
-  const filteredTournaments = tournaments.filter(tournament =>
-    tournament.name.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filteredTournaments = tournaments.filter(tournament => {
+    const matchesSearch = tournament.name.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesStatus = filterStatus === 'all' || tournament.status === filterStatus
+    return matchesSearch && matchesStatus
+  })
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">Loading tournaments...</div>
+      <div className="container py-8">
+        <div className="loading">Loading tournaments...</div>
       </div>
     )
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container py-8">
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Tournaments</h1>
-          <p className="text-muted-foreground">Browse and join backgammon tournaments</p>
+          <h1 className="text-3xl font-bold text-primary mb-2">Tournaments</h1>
+          <p className="text-secondary">Browse and join tournaments</p>
         </div>
-        
-        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-          <DialogTrigger asChild>
-            <Button className="flex items-center space-x-2">
-              <Plus className="h-4 w-4" />
-              <span>Create Tournament</span>
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create New Tournament</DialogTitle>
-              <DialogDescription>
-                Set up a new backgammon tournament for players to join.
-              </DialogDescription>
-            </DialogHeader>
-            
-            <form onSubmit={handleCreateTournament}>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Tournament Name</Label>
-                  <Input
-                    id="name"
-                    placeholder="Enter tournament name"
-                    value={newTournament.name}
-                    onChange={(e) => setNewTournament({ ...newTournament, name: e.target.value })}
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="date">Tournament Date</Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={newTournament.date}
-                    onChange={(e) => setNewTournament({ ...newTournament, date: e.target.value })}
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="rules">Rules & Description</Label>
-                  <Textarea
-                    id="rules"
-                    placeholder="Enter tournament rules and description"
-                    value={newTournament.rules}
-                    onChange={(e) => setNewTournament({ ...newTournament, rules: e.target.value })}
-                    rows={4}
-                  />
-                </div>
-              </div>
-              
-              <DialogFooter className="mt-6">
-                <Button type="button" variant="outline" onClick={() => setShowCreateDialog(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={creating}>
-                  {creating ? 'Creating...' : 'Create Tournament'}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
+        {user.role === 'tournament_administrator' && (
+          <button className="btn btn-primary">
+            <Plus className="h-4 w-4" />
+            <span>Create Tournament</span>
+          </button>
+        )}
       </div>
 
-      {/* Search */}
-      <div className="mb-6">
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search tournaments..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
+      {/* Filters */}
+      <div className="card mb-8">
+        <div className="card-content">
+          <div className="flex flex-col md:flex-row gap-4">
+            {/* Search */}
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search tournaments..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                />
+              </div>
+            </div>
+            
+            {/* Status Filter */}
+            <div>
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
+              >
+                <option value="all">All Status</option>
+                <option value="upcoming">Upcoming</option>
+                <option value="in_progress">In Progress</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Tournament Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredTournaments.map((tournament) => (
-          <Card key={tournament.tournament_id} className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <CardTitle className="text-lg">{tournament.name}</CardTitle>
-                  <CardDescription className="flex items-center space-x-4 mt-2">
-                    <span className="flex items-center space-x-1">
-                      <Calendar className="h-4 w-4" />
-                      <span>{new Date(tournament.date).toLocaleDateString()}</span>
-                    </span>
-                    <span className="flex items-center space-x-1">
-                      <Users className="h-4 w-4" />
-                      <span>{tournament.enrollment_count || 0} players</span>
-                    </span>
-                  </CardDescription>
+      {filteredTournaments.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredTournaments.map((tournament) => (
+            <div key={tournament.tournament_id} className="card">
+              <div className="card-header">
+                <div className="flex justify-between items-start mb-3">
+                  <h3 className="card-title text-lg">{tournament.name}</h3>
+                  {getStatusBadge(tournament.status)}
                 </div>
-                {getStatusBadge(tournament.status)}
+                <p className="card-description line-clamp-2">{tournament.description}</p>
               </div>
-            </CardHeader>
-            
-            <CardContent>
-              {tournament.rules && (
-                <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
-                  {tournament.rules}
-                </p>
-              )}
-              
-              <div className="flex justify-between items-center">
-                <div className="flex items-center space-x-2">
-                  <Trophy className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-medium">Backgammon</span>
+              <div className="card-content">
+                <div className="space-y-3 mb-6">
+                  <div className="flex items-center text-sm text-secondary">
+                    <Calendar className="h-4 w-4 mr-2" />
+                    <span>{new Date(tournament.date).toLocaleDateString()}</span>
+                  </div>
+                  <div className="flex items-center text-sm text-secondary">
+                    <Users className="h-4 w-4 mr-2" />
+                    <span>{tournament.enrollment_count || 0} players enrolled</span>
+                  </div>
+                  <div className="flex items-center text-sm text-secondary">
+                    <Trophy className="h-4 w-4 mr-2" />
+                    <span>Max: {tournament.max_players} players</span>
+                  </div>
                 </div>
                 
                 <Link to={`/tournaments/${tournament.tournament_id}`}>
-                  <Button variant="outline" size="sm">
+                  <button className="btn btn-outline w-full">
                     View Details
-                  </Button>
+                  </button>
                 </Link>
               </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {filteredTournaments.length === 0 && (
-        <div className="text-center py-12">
-          <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-foreground mb-2">
-            {searchTerm ? 'No tournaments found' : 'No tournaments available'}
-          </h3>
-          <p className="text-muted-foreground mb-4">
-            {searchTerm 
-              ? 'Try adjusting your search terms.' 
-              : 'Be the first to create a tournament!'
-            }
-          </p>
-          {!searchTerm && (
-            <Button onClick={() => setShowCreateDialog(true)}>
-              Create First Tournament
-            </Button>
-          )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="card">
+          <div className="card-content">
+            <div className="empty-state">
+              {searchTerm || filterStatus !== 'all' 
+                ? 'No tournaments match your search criteria.' 
+                : 'No tournaments available at the moment.'}
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -246,4 +154,3 @@ const Tournaments = ({ user }) => {
 }
 
 export default Tournaments
-
