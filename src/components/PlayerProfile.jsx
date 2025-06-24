@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Trophy, Award, TrendingUp, Target, Calendar, Users } from 'lucide-react'
+import { API_ENDPOINTS, API_BASE_URL, apiRequest } from '../config/api'
 
 const PlayerProfile = ({ user }) => {
   const [playerData, setPlayerData] = useState({ current_tournaments: [], past_tournaments: [] })
@@ -15,15 +16,18 @@ const PlayerProfile = ({ user }) => {
   const fetchPlayerData = async () => {
     try {
       const [tournamentsResponse, matchesResponse] = await Promise.all([
-        fetch(`https://77h9ikcj6vgw.manus.space/api/players/${user.player_id}/tournaments` ),
-        fetch(`https://77h9ikcj6vgw.manus.space/api/players/${user.player_id}/matches` )
+        apiRequest(API_ENDPOINTS.PLAYER_TOURNAMENTS(user.player_id)),
+        fetch(`${API_BASE_URL}/api/players/${user.player_id}/matches`)
       ])
       
-      const tournamentsData = await tournamentsResponse.json()
-      const matchesData = await matchesResponse.json()
+      if (tournamentsResponse.success) {
+        setPlayerData(tournamentsResponse.data)
+      }
       
-      setPlayerData(tournamentsData)
-      setPlayerMatches(matchesData.matches || [])
+      if (matchesResponse.ok) {
+        const matchesData = await matchesResponse.json()
+        setPlayerMatches(matchesData.matches || [])
+      }
     } catch (error) {
       console.error('Error fetching player data:', error)
     } finally {
@@ -50,39 +54,28 @@ const PlayerProfile = ({ user }) => {
     )
   }
 
-  // Calculate statistics
-  const totalTournaments = (playerData.current_tournaments?.length || 0) + (playerData.past_tournaments?.length || 0)
   const totalWins = playerData.past_tournaments?.reduce((total, t) => total + (t.wins || 0), 0) || 0
-  const totalGames = playerData.past_tournaments?.reduce((total, t) => total + (t.wins || 0) + (t.losses || 0), 0) || 0
-  const winRate = totalGames > 0 ? Math.round((totalWins / totalGames) * 100) : 0
+  const totalLosses = playerData.past_tournaments?.reduce((total, t) => total + (t.losses || 0), 0) || 0
   const totalScore = playerData.past_tournaments?.reduce((total, t) => total + (t.total_score || 0), 0) || 0
 
   return (
     <div className="container py-8">
       {/* Header */}
-      <div className="flex items-center space-x-6 mb-8">
-        <div className="w-20 h-20 bg-blue-50 rounded-xl flex items-center justify-center border-2 border-blue-200">
-          <span className="text-3xl font-bold text-blue-600">
-            {user.name.charAt(0).toUpperCase()}
-          </span>
-        </div>
-        <div>
-          <h1 className="text-3xl font-bold text-primary mb-2">{user.name}</h1>
-          <p className="text-secondary text-lg">{user.email}</p>
-          {user.role && (
-            <span className="badge badge-primary mt-2">{user.role.replace('_', ' ').toUpperCase()}</span>
-          )}
-        </div>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-primary mb-2">Player Profile</h1>
+        <p className="text-secondary">Your tournament statistics and history</p>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      {/* Player Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <div className="stat-card">
           <div className="stat-card-header">
-            <div className="stat-card-title">Tournaments Played</div>
+            <div className="stat-card-title">Total Tournaments</div>
             <Trophy className="stat-card-icon" />
           </div>
-          <div className="stat-card-value">{totalTournaments}</div>
+          <div className="stat-card-value">
+            {(playerData.current_tournaments?.length || 0) + (playerData.past_tournaments?.length || 0)}
+          </div>
         </div>
         
         <div className="stat-card">
@@ -90,7 +83,7 @@ const PlayerProfile = ({ user }) => {
             <div className="stat-card-title">Total Wins</div>
             <Award className="stat-card-icon" />
           </div>
-          <div className="stat-card-value text-green-600">{totalWins}</div>
+          <div className="stat-card-value">{totalWins}</div>
         </div>
         
         <div className="stat-card">
@@ -98,7 +91,9 @@ const PlayerProfile = ({ user }) => {
             <div className="stat-card-title">Win Rate</div>
             <TrendingUp className="stat-card-icon" />
           </div>
-          <div className="stat-card-value">{winRate}%</div>
+          <div className="stat-card-value">
+            {totalWins + totalLosses > 0 ? Math.round((totalWins / (totalWins + totalLosses)) * 100) : 0}%
+          </div>
         </div>
         
         <div className="stat-card">
@@ -110,7 +105,7 @@ const PlayerProfile = ({ user }) => {
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Profile Content */}
       <div className="card">
         <div className="card-content p-0">
           <Tabs defaultValue="current" className="w-full">
@@ -133,6 +128,10 @@ const PlayerProfile = ({ user }) => {
                           <span className="flex items-center space-x-1">
                             <Calendar className="h-3 w-3" />
                             <span>{new Date(tournament.date).toLocaleDateString()}</span>
+                          </span>
+                          <span className="flex items-center space-x-1">
+                            <Users className="h-3 w-3" />
+                            <span>{tournament.enrollment_count || 0} players</span>
                           </span>
                         </p>
                       </div>
@@ -161,22 +160,16 @@ const PlayerProfile = ({ user }) => {
                             <Calendar className="h-3 w-3" />
                             <span>{new Date(tournament.date).toLocaleDateString()}</span>
                           </span>
-                          <span className="flex items-center space-x-1">
-                            <Users className="h-3 w-3" />
-                            <span>{tournament.matches_played} matches played</span>
-                          </span>
+                          <span className="text-green-600">{tournament.wins || 0}W</span>
+                          <span className="text-red-600">{tournament.losses || 0}L</span>
                         </p>
                       </div>
                       <div className="text-right">
-                        <div className="flex items-center space-x-4">
-                          <div className="text-sm">
-                            <span className="font-medium text-green-600">{tournament.wins}W</span>
-                            <span className="text-secondary"> - </span>
-                            <span className="font-medium text-red-600">{tournament.losses}L</span>
-                          </div>
-                          <div className="text-sm text-secondary">
-                            Score: {tournament.total_score}
-                          </div>
+                        <div className="text-lg font-bold text-primary">
+                          {tournament.total_score || 0} pts
+                        </div>
+                        <div className="text-sm text-secondary">
+                          {tournament.matches_played || 0} matches
                         </div>
                       </div>
                     </div>
@@ -195,41 +188,36 @@ const PlayerProfile = ({ user }) => {
                   {playerMatches.map((match) => (
                     <div key={match.match_id} className="tournament-item">
                       <div className="tournament-info">
-                        <h3>vs {match.opponent_name}</h3>
+                        <h3>{match.player1_name} vs {match.player2_name}</h3>
                         <p className="flex items-center space-x-4">
-                          <span>{match.tournament_name}</span>
-                          <span className="text-xs text-secondary">
-                            {new Date(match.date).toLocaleDateString()}
+                          <span className="flex items-center space-x-1">
+                            <Calendar className="h-3 w-3" />
+                            <span>{new Date(match.scheduled_time).toLocaleDateString()}</span>
                           </span>
+                          <span className="text-sm text-secondary">{match.tournament_name}</span>
                         </p>
                       </div>
                       <div className="text-right">
-                        <div className="flex items-center space-x-4">
-                          {match.status === 'completed' ? (
-                            <>
-                              <div className="text-sm">
-                                <span className="font-medium">
-                                  {match.player1_id === user.player_id ? match.score_player1 : match.score_player2}
-                                </span>
-                                <span className="text-secondary"> - </span>
-                                <span className="font-medium">
-                                  {match.player1_id === user.player_id ? match.score_player2 : match.score_player1}
-                                </span>
-                              </div>
-                              <span className={`badge ${
-                                (match.player1_id === user.player_id && match.score_player1 > match.score_player2) ||
-                                (match.player2_id === user.player_id && match.score_player2 > match.score_player1)
-                                  ? 'badge-success' : 'badge-outline'
-                              }`}>
-                                {(match.player1_id === user.player_id && match.score_player1 > match.score_player2) ||
-                                 (match.player2_id === user.player_id && match.score_player2 > match.score_player1)
-                                  ? 'Won' : 'Lost'}
-                              </span>
-                            </>
-                          ) : (
-                            <span className="badge badge-warning">Pending</span>
-                          )}
-                        </div>
+                        {match.status === 'completed' ? (
+                          <>
+                            <div className="text-sm font-medium">
+                              <span className="text-primary">{match.score_player1}</span>
+                              <span className="text-secondary"> - </span>
+                              <span className="text-primary">{match.score_player2}</span>
+                            </div>
+                            <span className={`badge ${
+                              (match.player1_id === user.player_id && match.score_player1 > match.score_player2) ||
+                              (match.player2_id === user.player_id && match.score_player2 > match.score_player1)
+                                ? 'badge-success' : 'badge-outline'
+                            }`}>
+                              {(match.player1_id === user.player_id && match.score_player1 > match.score_player2) ||
+                               (match.player2_id === user.player_id && match.score_player2 > match.score_player1)
+                                ? 'Won' : 'Lost'}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="badge badge-warning">Pending</span>
+                        )}
                       </div>
                     </div>
                   ))}

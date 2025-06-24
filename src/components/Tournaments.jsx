@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Plus, Calendar, Users, Trophy, Search } from 'lucide-react'
+import { API_ENDPOINTS, apiRequest } from '../config/api'
 
 const Tournaments = ({ user }) => {
   const [tournaments, setTournaments] = useState([])
@@ -15,9 +16,10 @@ const Tournaments = ({ user }) => {
 
   const fetchTournaments = async () => {
     try {
-      const response = await fetch('https://77h9ikcj6vgw.manus.space/api/tournaments' )
-      const data = await response.json()
-      setTournaments(data.tournaments || [])
+      const response = await apiRequest(API_ENDPOINTS.TOURNAMENTS)
+      if (response.success) {
+        setTournaments(response.data.tournaments || response.data || [])
+      }
     } catch (error) {
       console.error('Error fetching tournaments:', error)
     } finally {
@@ -72,14 +74,34 @@ const Tournaments = ({ user }) => {
           <div className="flex flex-col md:flex-row gap-4">
             {/* Search */}
             <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <div style={{ position: 'relative' }}>
+                <Search style={{
+                  position: 'absolute',
+                  left: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: '16px',
+                  height: '16px',
+                  color: '#9ca3af'
+                }} />
                 <input
                   type="text"
                   placeholder="Search tournaments..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  style={{
+                    width: '100%',
+                    paddingLeft: '40px',
+                    paddingRight: '16px',
+                    paddingTop: '12px',
+                    paddingBottom: '12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '16px',
+                    outline: 'none'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#2563eb'}
+                  onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
                 />
               </div>
             </div>
@@ -89,7 +111,16 @@ const Tournaments = ({ user }) => {
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
+                style={{
+                  padding: '12px 16px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  outline: 'none',
+                  backgroundColor: 'white'
+                }}
+                onFocus={(e) => e.target.style.borderColor = '#2563eb'}
+                onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
               >
                 <option value="all">All Status</option>
                 <option value="upcoming">Upcoming</option>
@@ -130,7 +161,7 @@ const Tournaments = ({ user }) => {
                 </div>
                 
                 <Link to={`/tournaments/${tournament.tournament_id}`}>
-                  <button className="btn btn-outline w-full">
+                  <button className="btn btn-outline w-full" style={{ width: '100%' }}>
                     View Details
                   </button>
                 </Link>

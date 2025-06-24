@@ -4,11 +4,14 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Trophy, Calendar, Users, TrendingUp, Plus } from 'lucide-react'
+import CreateTournamentModal from './CreateTournamentModal'
+import { API_ENDPOINTS, apiRequest } from '../config/api'
 
-const Dashboard = ({ user }) => {
+const Dashboard = ({ user } ) => {
   const [tournaments, setTournaments] = useState([])
   const [playerTournaments, setPlayerTournaments] = useState({ current_tournaments: [], past_tournaments: [] })
   const [loading, setLoading] = useState(true)
+  const [showCreateModal, setShowCreateModal] = useState(false)
 
   useEffect(() => {
     fetchDashboardData()
@@ -16,16 +19,19 @@ const Dashboard = ({ user }) => {
 
   const fetchDashboardData = async () => {
     try {
-      // Fetch all tournaments
-      const tournamentsResponse = await fetch('https://77h9ikcj6vgw.manus.space/api/tournaments' )
-      const tournamentsData = await tournamentsResponse.json()
+      // Fetch all tournaments using your API configuration
+      const tournamentsResponse = await apiRequest(API_ENDPOINTS.TOURNAMENTS)
       
-      // Fetch player's tournaments
-      const playerTournamentsResponse = await fetch(`https://77h9ikcj6vgw.manus.space/api/players/${user.player_id}/tournaments` )
-      const playerTournamentsData = await playerTournamentsResponse.json()
+      // Fetch player's tournaments using your API configuration
+      const playerTournamentsResponse = await apiRequest(API_ENDPOINTS.PLAYER_TOURNAMENTS(user.player_id))
       
-      setTournaments(tournamentsData.tournaments || [])
-      setPlayerTournaments(playerTournamentsData)
+      if (tournamentsResponse.success) {
+        setTournaments(tournamentsResponse.data.tournaments || tournamentsResponse.data || [])
+      }
+      
+      if (playerTournamentsResponse.success) {
+        setPlayerTournaments(playerTournamentsResponse.data)
+      }
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
     } finally {
@@ -63,12 +69,15 @@ const Dashboard = ({ user }) => {
           <h1 className="text-3xl font-bold text-primary mb-2">Dashboard</h1>
           <p className="text-secondary">Welcome back, {user.name}!</p>
         </div>
-        <Link to="/tournaments">
-          <button className="btn btn-primary">
+        {user.role === 'tournament_administrator' && (
+          <button 
+            className="btn btn-primary"
+            onClick={() => setShowCreateModal(true)}
+          >
             <Plus className="h-4 w-4" />
             <span>Create Tournament</span>
           </button>
-        </Link>
+        )}
       </div>
 
       {/* Stats Cards */}
@@ -154,7 +163,7 @@ const Dashboard = ({ user }) => {
                   <div key={tournament.tournament_id} className="tournament-item">
                     <div className="tournament-info">
                       <h3>{tournament.name}</h3>
-                      <p>{new Date(tournament.date).toLocaleDateString()} • {tournament.enrollment_count} players</p>
+                      <p>{new Date(tournament.date).toLocaleDateString()} • {tournament.enrollment_count || 0} players</p>
                     </div>
                     <div className="tournament-actions">
                       {getStatusBadge(tournament.status)}
@@ -191,12 +200,12 @@ const Dashboard = ({ user }) => {
                   </div>
                   <div className="text-right">
                     <div className="text-sm font-medium">
-                      <span className="text-green-600">{tournament.wins}W</span>
+                      <span className="text-green-600">{tournament.wins || 0}W</span>
                       <span className="text-secondary"> - </span>
-                      <span className="text-red-600">{tournament.losses}L</span>
+                      <span className="text-red-600">{tournament.losses || 0}L</span>
                     </div>
                     <div className="text-sm text-secondary">
-                      Score: {tournament.total_score}
+                      Score: {tournament.total_score || 0}
                     </div>
                   </div>
                 </div>
@@ -205,6 +214,17 @@ const Dashboard = ({ user }) => {
           </div>
         </div>
       )}
+
+      {/* Create Tournament Modal */}
+      <CreateTournamentModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onTournamentCreated={() => {
+          setShowCreateModal(false)
+          fetchDashboardData() // Refresh the data
+        }}
+        user={user}
+      />
     </div>
   )
 }

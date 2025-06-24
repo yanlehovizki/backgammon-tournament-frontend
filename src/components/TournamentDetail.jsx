@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Calendar, Users, Trophy, Clock, Target, Award, ArrowLeft } from 'lucide-react'
+import { API_ENDPOINTS, API_BASE_URL, apiRequest } from '../config/api'
 
 const TournamentDetail = ({ user }) => {
   const { id } = useParams()
@@ -20,22 +21,27 @@ const TournamentDetail = ({ user }) => {
   const fetchTournamentData = async () => {
     try {
       const [tournamentResponse, participantsResponse, matchesResponse] = await Promise.all([
-        fetch(`https://77h9ikcj6vgw.manus.space/api/tournaments/${id}` ),
-        fetch(`https://77h9ikcj6vgw.manus.space/api/tournaments/${id}/participants` ),
-        fetch(`https://77h9ikcj6vgw.manus.space/api/tournaments/${id}/matches` )
+        apiRequest(API_ENDPOINTS.TOURNAMENT_DETAIL(id)),
+        fetch(`${API_BASE_URL}/api/tournaments/${id}/participants`),
+        apiRequest(API_ENDPOINTS.TOURNAMENT_MATCHES(id))
       ])
 
-      const tournamentData = await tournamentResponse.json()
-      const participantsData = await participantsResponse.json()
-      const matchesData = await matchesResponse.json()
+      if (tournamentResponse.success) {
+        setTournament(tournamentResponse.data.tournament || tournamentResponse.data)
+      }
 
-      setTournament(tournamentData.tournament)
-      setParticipants(participantsData.participants || [])
-      setMatches(matchesData.matches || [])
-      
-      // Check if user is enrolled
-      const userEnrolled = participantsData.participants?.some(p => p.player_id === user.player_id)
-      setIsEnrolled(userEnrolled)
+      if (participantsResponse.ok) {
+        const participantsData = await participantsResponse.json()
+        setParticipants(participantsData.participants || [])
+        
+        // Check if user is enrolled
+        const userEnrolled = participantsData.participants?.some(p => p.player_id === user.player_id)
+        setIsEnrolled(userEnrolled)
+      }
+
+      if (matchesResponse.success) {
+        setMatches(matchesResponse.data.matches || matchesResponse.data || [])
+      }
     } catch (error) {
       console.error('Error fetching tournament data:', error)
     } finally {
@@ -46,13 +52,12 @@ const TournamentDetail = ({ user }) => {
   const handleEnroll = async () => {
     setEnrolling(true)
     try {
-      const response = await fetch(`https://77h9ikcj6vgw.manus.space/api/tournaments/${id}/enroll`, {
+      const response = await apiRequest(API_ENDPOINTS.TOURNAMENT_ENROLL(id), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ player_id: user.player_id } )
+        body: JSON.stringify({ player_id: user.player_id })
       })
 
-      if (response.ok) {
+      if (response.success) {
         setIsEnrolled(true)
         fetchTournamentData() // Refresh data
       }
