@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Badge } from './components/ui/badge'
+import { Badge } from './ui/badge'
 import { Plus, Calendar, Users, Trophy, Search, Edit } from 'lucide-react'
 import { API_ENDPOINTS, apiRequest } from '../config/api'
 import CreateTournamentModal from './CreateTournamentModal'
