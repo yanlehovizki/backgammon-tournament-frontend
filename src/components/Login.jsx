@@ -170,7 +170,8 @@ const Login = ({ onLogin }) => {
               <button
                 type="submit"
                 disabled={loading}
-                className="btn btn-primary btn-lg w-full"
+                className="btn btn-primary btn-lg"
+                style={{ width:'100%' }}
               >
                 {loading ? 'Signing in...' : 'Sign in'}
               </button>

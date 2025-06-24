@@ -303,7 +303,8 @@ const Register = ({ onLogin }) => {
               <button
                 type="submit"
                 disabled={loading || !passwordsMatch || formData.password.length < 6}
-                className="btn btn-primary btn-lg w-full"
+                className="btn btn-primary btn-lg"
+                style={{ width: '100%' }}
               >
                 {loading ? 'Creating account...' : 'Create account'}
               </button>
