@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
+import { Button } from './ui/button'
 import { Trophy, User, LogOut, Home } from 'lucide-react'
 
 const Navbar = ({ user, onLogout }) => {
