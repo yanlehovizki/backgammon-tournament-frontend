@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Calendar, Users, Trophy, Search } from 'lucide-react'
+import { Plus, Calendar, Users, Trophy, Search, Edit } from 'lucide-react'
 import { API_ENDPOINTS, apiRequest } from '../config/api'
+import EditTournamentModal from './EditTournamentModal'
 
 const Tournaments = ({ user }) => {
   const [tournaments, setTournaments] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [selectedTournament, setSelectedTournament] = useState(null)
 
   useEffect(() => {
     fetchTournaments()
@@ -18,13 +21,24 @@ const Tournaments = ({ user }) => {
     try {
       const response = await apiRequest(API_ENDPOINTS.TOURNAMENTS)
       if (response.success) {
-        setTournaments(response.data.tournaments || response.data || [])
+        setTournaments(response.data.tournaments || [])
       }
     } catch (error) {
       console.error('Error fetching tournaments:', error)
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleEditTournament = (tournament) => {
+    setSelectedTournament(tournament)
+    setShowEditModal(true)
+  }
+
+  const handleTournamentUpdated = () => {
+    setShowEditModal(false)
+    setSelectedTournament(null)
+    fetchTournaments() // Refresh the tournament list
   }
 
   const getStatusBadge = (status) => {
@@ -46,20 +60,23 @@ const Tournaments = ({ user }) => {
 
   if (loading) {
     return (
-      <div className="container py-8">
-        <div className="loading">Loading tournaments...</div>
+      <div className="container">
+        <div className="text-center py-8">
+          <div className="text-lg">Loading tournaments...</div>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="container py-8">
+    <div className="container">
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-primary mb-2">Tournaments</h1>
-          <p className="text-secondary">Browse and join tournaments</p>
+          <h1 className="text-3xl font-bold text-primary">Tournaments</h1>
+          <p className="text-secondary mt-2">Browse and join upcoming tournaments</p>
         </div>
+        
         {user.role === 'super_user' && (
           <button className="btn btn-primary">
             <Plus className="h-4 w-4" />
@@ -68,22 +85,14 @@ const Tournaments = ({ user }) => {
         )}
       </div>
 
-      {/* Filters */}
+      {/* Search and Filter */}
       <div className="card mb-8">
         <div className="card-content">
           <div className="flex flex-col md:flex-row gap-4">
             {/* Search */}
             <div className="flex-1">
-              <div style={{ position: 'relative' }}>
-                <Search style={{
-                  position: 'absolute',
-                  left: '12px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  width: '16px',
-                  height: '16px',
-                  color: '#9ca3af'
-                }} />
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-secondary" />
                 <input
                   type="text"
                   placeholder="Search tournaments..."
@@ -92,9 +101,7 @@ const Tournaments = ({ user }) => {
                   style={{
                     width: '100%',
                     paddingLeft: '40px',
-                    paddingRight: '16px',
-                    paddingTop: '12px',
-                    paddingBottom: '12px',
+                    padding: '12px',
                     border: '1px solid #d1d5db',
                     borderRadius: '8px',
                     fontSize: '16px',
@@ -106,18 +113,19 @@ const Tournaments = ({ user }) => {
               </div>
             </div>
             
-            {/* Status Filter */}
+            {/* Filter */}
             <div>
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
                 style={{
-                  padding: '12px 16px',
+                  padding: '12px',
                   border: '1px solid #d1d5db',
                   borderRadius: '8px',
                   fontSize: '16px',
                   outline: 'none',
-                  backgroundColor: 'white'
+                  backgroundColor: 'white',
+                  minWidth: '150px'
                 }}
                 onFocus={(e) => e.target.style.borderColor = '#2563eb'}
                 onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
@@ -138,14 +146,17 @@ const Tournaments = ({ user }) => {
           {filteredTournaments.map((tournament) => (
             <div key={tournament.tournament_id} className="card">
               <div className="card-header">
-                <div className="flex justify-between items-start mb-3">
-                  <h3 className="card-title text-lg">{tournament.name}</h3>
+                <div className="flex justify-between items-start">
+                  <h3 className="card-title">{tournament.name}</h3>
                   {getStatusBadge(tournament.status)}
                 </div>
-                <p className="card-description line-clamp-2">{tournament.description}</p>
+                {tournament.description && (
+                  <p className="card-description">{tournament.description}</p>
+                )}
               </div>
+              
               <div className="card-content">
-                <div className="space-y-3 mb-6">
+                <div className="space-y-3 mb-4">
                   <div className="flex items-center text-sm text-secondary">
                     <Calendar className="h-4 w-4 mr-2" />
                     <span>{new Date(tournament.date).toLocaleDateString()}</span>
@@ -160,11 +171,23 @@ const Tournaments = ({ user }) => {
                   </div>
                 </div>
                 
-                <Link to={`/tournaments/${tournament.tournament_id}`}>
-                  <button className="btn btn-outline w-full" style={{ width: '100%' }}>
-                    View Details
-                  </button>
-                </Link>
+                <div className="space-y-2">
+                  <Link to={`/tournaments/${tournament.tournament_id}`}>
+                    <button className="btn btn-outline w-full">
+                      View Details
+                    </button>
+                  </Link>
+                  
+                  {user.role === 'super_user' && (
+                    <button 
+                      className="btn btn-secondary w-full"
+                      onClick={() => handleEditTournament(tournament)}
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit Tournament
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           ))}
@@ -180,6 +203,18 @@ const Tournaments = ({ user }) => {
           </div>
         </div>
       )}
+
+      {/* Edit Tournament Modal */}
+      <EditTournamentModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false)
+          setSelectedTournament(null)
+        }}
+        onTournamentUpdated={handleTournamentUpdated}
+        tournament={selectedTournament}
+        user={user}
+      />
     </div>
   )
 }
