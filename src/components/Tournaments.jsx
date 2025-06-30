@@ -1,211 +1,251 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import CreateTournamentModal from './CreateTournamentModal';
+import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
+import { Badge } from './ui/badge'
+import { Plus, Calendar, Users, Trophy, Search, Edit } from 'lucide-react'
+import { API_ENDPOINTS, apiRequest } from '../config/api'
+import CreateTournamentModal from './CreateTournamentModal'
+import EditTournamentModal from './EditTournamentModal'
 
-const Tournaments = () => {
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+const Tournaments = ({ user }) => {
+  const [tournaments, setTournaments] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filterStatus, setFilterStatus] = useState('all')
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [selectedTournament, setSelectedTournament] = useState(null)
 
-  const tournaments = [
-    {
-      id: 1,
-      name: 'Spring Championship 2025',
-      status: 'Upcoming',
-      date: 'July 15, 2025',
-      location: 'New York, NY',
-      players: 24,
-      maxPlayers: 32,
-      prize: 1500,
-      organizer: 'Tournament Pro'
-    },
-    {
-      id: 2,
-      name: 'Beginner Friendly Cup',
-      status: 'Active',
-      date: 'July 1, 2025',
-      location: 'Online',
-      players: 16,
-      maxPlayers: 16,
-      prize: 0,
-      organizer: 'Community League'
-    },
-    {
-      id: 3,
-      name: 'Elite Masters Tournament',
-      status: 'Completed',
-      date: 'June 20, 2025',
-      location: 'Los Angeles, CA',
-      players: 8,
-      maxPlayers: 8,
-      prize: 800,
-      organizer: 'Elite Gaming'
-    },
-    {
-      id: 4,
-      name: 'Weekly Challenge #47',
-      status: 'Upcoming',
-      date: 'July 8, 2025',
-      location: 'Chicago, IL',
-      players: 12,
-      maxPlayers: 20,
-      prize: 200,
-      organizer: 'Weekly Series'
+  useEffect(() => {
+    fetchTournaments()
+  }, [])
+
+  const fetchTournaments = async () => {
+    try {
+      const response = await apiRequest(API_ENDPOINTS.TOURNAMENTS)
+      if (response.success) {
+        setTournaments(response.data.tournaments || [])
+      }
+    } catch (error) {
+      console.error('Error fetching tournaments:', error)
+    } finally {
+      setLoading(false)
     }
-  ];
+  }
 
-  const filteredTournaments = tournaments.filter(tournament =>
-    tournament.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    tournament.location.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const handleTournamentCreated = (newTournament) => {
+    setTournaments(prev => [newTournament, ...prev])
+    setShowCreateModal(false)
+  }
+
+  const handleEditTournament = (tournament) => {
+    setSelectedTournament(tournament)
+    setShowEditModal(true)
+  }
+
+  const handleTournamentUpdated = () => {
+    setShowEditModal(false)
+    setSelectedTournament(null)
+    fetchTournaments() // Refresh the tournament list
+  }
+
+  const getStatusBadge = (status) => {
+    const statusConfig = {
+      upcoming: { className: 'badge badge-primary', label: 'Upcoming' },
+      in_progress: { className: 'badge badge-success', label: 'In Progress' },
+      completed: { className: 'badge badge-outline', label: 'Completed' }
+    }
+    
+    const config = statusConfig[status] || statusConfig.upcoming
+    return <span className={config.className}>{config.label}</span>
+  }
+
+  const filteredTournaments = tournaments.filter(tournament => {
+    const matchesSearch = tournament.name.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesStatus = filterStatus === 'all' || tournament.status === filterStatus
+    return matchesSearch && matchesStatus
+  })
+
+  if (loading) {
+    return (
+      <div className="container">
+        <div className="text-center py-8">
+          <div className="text-lg">Loading tournaments...</div>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+    <div className="container">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 style={{ margin: '0 0 10px 0', fontSize: '32px', color: '#333' }}>Tournaments</h1>
-          <p style={{ margin: 0, color: '#666' }}>Browse and join tournaments</p>
+          <h1 className="text-3xl font-bold text-primary">Tournaments</h1>
+          <p className="text-secondary mt-2">Browse and join upcoming tournaments</p>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          style={{
-            backgroundColor: '#007bff',
-            color: 'white',
-            border: 'none',
-            padding: '10px 20px',
-            borderRadius: '5px',
-            cursor: 'pointer',
-            fontSize: '14px'
-          }}
-        >
-          + Create Tournament
-        </button>
-      </div>
-
-      {/* Search */}
-      <div style={{ marginBottom: '20px' }}>
-        <input
-          type="text"
-          placeholder="Search tournaments..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          style={{
-            width: '100%',
-            maxWidth: '400px',
-            padding: '10px',
-            border: '1px solid #ddd',
-            borderRadius: '5px',
-            fontSize: '14px'
-          }}
-        />
-      </div>
-
-      {/* Tournaments List */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '20px' }}>
-        {filteredTournaments.map(tournament => (
-          <div 
-            key={tournament.id}
-            style={{ 
-              backgroundColor: 'white', 
-              padding: '20px', 
-              borderRadius: '8px', 
-              border: '1px solid #ddd',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-            }}
+        
+        {user.role === 'super_user' && (
+          <button 
+            className="btn btn-primary"
+            onClick={() => setShowCreateModal(true)}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px' }}>
-              <h3 style={{ margin: 0, color: '#333', fontSize: '18px' }}>{tournament.name}</h3>
-              <span 
-                style={{ 
-                  padding: '3px 8px', 
-                  borderRadius: '3px', 
-                  fontSize: '12px',
-                  backgroundColor: tournament.status === 'Active' ? '#d4edda' : 
-                                 tournament.status === 'Upcoming' ? '#d1ecf1' : '#f8d7da',
-                  color: tournament.status === 'Active' ? '#155724' : 
-                         tournament.status === 'Upcoming' ? '#0c5460' : '#721c24'
-                }}
-              >
-                {tournament.status}
-              </span>
+            <Plus className="h-4 w-4" />
+            <span>Create Tournament</span>
+          </button>
+        )}
+      </div>
+
+      {/* Search and Filter */}
+      <div className="card mb-8">
+        <div className="card-content">
+          <div className="flex flex-col md:flex-row gap-4">
+            {/* Search */}
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-secondary" />
+                <input
+                  type="text"
+                  placeholder="Search tournaments..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  style={{
+                    width: '100%',
+                    paddingLeft: '40px',
+                    padding: '12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '16px',
+                    outline: 'none'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#2563eb'}
+                  onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                />
+              </div>
             </div>
             
-            <div style={{ marginBottom: '15px' }}>
-              <p style={{ margin: '5px 0', color: '#666', fontSize: '14px' }}>
-                <strong>Date:</strong> {tournament.date}
-              </p>
-              <p style={{ margin: '5px 0', color: '#666', fontSize: '14px' }}>
-                <strong>Location:</strong> {tournament.location}
-              </p>
-              <p style={{ margin: '5px 0', color: '#666', fontSize: '14px' }}>
-                <strong>Players:</strong> {tournament.players}/{tournament.maxPlayers}
-              </p>
-              {tournament.prize > 0 && (
-                <p style={{ margin: '5px 0', color: '#666', fontSize: '14px' }}>
-                  <strong>Prize:</strong> ${tournament.prize}
-                </p>
-              )}
-              <p style={{ margin: '5px 0', color: '#666', fontSize: '14px' }}>
-                <strong>Organizer:</strong> {tournament.organizer}
-              </p>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ fontSize: '12px', color: '#999' }}>
-                {Math.round((tournament.players / tournament.maxPlayers) * 100)}% full
-              </div>
-              <Link
-                to={`/tournaments/${tournament.id}`}
+            {/* Filter */}
+            <div>
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
                 style={{
-                  backgroundColor: '#007bff',
-                  color: 'white',
-                  textDecoration: 'none',
-                  padding: '8px 16px',
-                  borderRadius: '3px',
-                  fontSize: '14px'
+                  padding: '12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  outline: 'none',
+                  backgroundColor: 'white',
+                  minWidth: '150px'
                 }}
+                onFocus={(e) => e.target.style.borderColor = '#2563eb'}
+                onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
               >
-                View Details
-              </Link>
+                <option value="all">All Status</option>
+                <option value="upcoming">Upcoming</option>
+                <option value="in_progress">In Progress</option>
+                <option value="completed">Completed</option>
+              </select>
             </div>
           </div>
-        ))}
+        </div>
       </div>
 
-      {filteredTournaments.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-          <h3>No tournaments found</h3>
-          <p>Try adjusting your search or create a new tournament.</p>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            style={{
-              backgroundColor: '#007bff',
-              color: 'white',
-              border: 'none',
-              padding: '10px 20px',
-              borderRadius: '5px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              marginTop: '10px'
-            }}
-          >
-            Create Tournament
-          </button>
+      {/* Tournament Grid */}
+      {filteredTournaments.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredTournaments.map((tournament) => (
+            <div key={tournament.tournament_id} className="card">
+              <div className="card-header">
+                <div className="flex justify-between items-start">
+                  <h3 className="card-title">{tournament.name}</h3>
+                  {getStatusBadge(tournament.status)}
+                </div>
+                {tournament.description && (
+                  <p className="card-description">{tournament.description}</p>
+                )}
+              </div>
+              
+              <div className="card-content">
+                <div className="space-y-3 mb-4">
+                  <div className="flex items-center text-sm text-secondary">
+                    <Calendar className="h-4 w-4 mr-2" />
+                    <span>{new Date(tournament.date).toLocaleDateString()}</span>
+                  </div>
+                  <div className="flex items-center text-sm text-secondary">
+                    <Users className="h-4 w-4 mr-2" />
+                    <span>{tournament.enrollment_count || 0} players enrolled</span>
+                  </div>
+                  <div className="flex items-center text-sm text-secondary">
+                    <Trophy className="h-4 w-4 mr-2" />
+                    <span>Max: {tournament.max_players} players</span>
+                  </div>
+                  {tournament.entry_fee && (
+                    <div className="flex items-center text-sm text-secondary">
+                      <span className="font-medium">Entry Fee: ${tournament.entry_fee}</span>
+                    </div>
+                  )}
+                  {tournament.bracket && (
+                    <div className="flex items-center text-sm text-green-600">
+                      <Trophy className="h-4 w-4 mr-2" />
+                      <span>Bracket Generated</span>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="space-y-2">
+                  <Link to={`/tournaments/${tournament.tournament_id}`}>
+                    <button className="btn btn-outline w-full">
+                      View Details
+                    </button>
+                  </Link>
+                  
+                  {user.role === 'super_user' && (
+                    <button 
+                      className="btn btn-secondary w-full"
+                      onClick={() => handleEditTournament(tournament)}
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit Tournament
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="card">
+          <div className="card-content">
+            <div className="empty-state">
+              {searchTerm || filterStatus !== 'all' 
+                ? 'No tournaments match your search criteria.' 
+                : 'No tournaments available at the moment.'}
+            </div>
+          </div>
         </div>
       )}
 
       {/* Create Tournament Modal */}
-      {showCreateModal && (
-        <CreateTournamentModal
-          isOpen={showCreateModal}
-          onClose={() => setShowCreateModal(false)}
-          onTournamentCreated={(tournament) => {
-            console.log('Tournament created:', tournament);
-            setShowCreateModal(false);
-          }}
-        />
-      )}
-    </div>
-  );
-};
+      <CreateTournamentModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onTournamentCreated={handleTournamentCreated}
+        user={user}
+      />
 
-export default Tournaments;
+      {/* Edit Tournament Modal */}
+      <EditTournamentModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false)
+          setSelectedTournament(null)
+        }}
+        onTournamentUpdated={handleTournamentUpdated}
+        tournament={selectedTournament}
+        user={user}
+      />
+    </div>
+  )
+}
+
+export default Tournaments

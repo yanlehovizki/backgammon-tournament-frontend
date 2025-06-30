@@ -1,153 +1,224 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import CreateTournamentModal from './CreateTournamentModal';
+import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
+import { Button } from './ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
+import { Badge } from './ui/badge'
+import { Trophy, Calendar, Users, TrendingUp, Plus } from 'lucide-react'
 
-const Dashboard = () => {
-  const [showCreateModal, setShowCreateModal] = useState(false);
+const Dashboard = ({ user }) => {
+  const [tournaments, setTournaments] = useState([])
+  const [playerTournaments, setPlayerTournaments] = useState({ current_tournaments: [], past_tournaments: [] })
+  const [loading, setLoading] = useState(true)
 
-  const stats = {
-    totalTournaments: 12,
-    activeTournaments: 3,
-    totalPlayers: 156,
-    totalPrize: 5000
-  };
+  useEffect(() => {
+    fetchDashboardData()
+  }, [user])
 
-  const recentTournaments = [
-    {
-      id: 1,
-      name: 'Spring Championship',
-      status: 'Active',
-      players: '24/32',
-      date: 'July 15, 2025'
-    },
-    {
-      id: 2,
-      name: 'Weekly Cup',
-      status: 'Upcoming',
-      players: '16/20',
-      date: 'July 20, 2025'
-    },
-    {
-      id: 3,
-      name: 'Masters Tournament',
-      status: 'Completed',
-      players: '8/8',
-      date: 'July 10, 2025'
+  const fetchDashboardData = async () => {
+    try {
+      // Fetch all tournaments
+      const tournamentsResponse = await fetch('https://77h9ikcj6vgw.manus.space/api/tournaments')
+      const tournamentsData = await tournamentsResponse.json()
+      
+      // Fetch player's tournaments
+      const playerTournamentsResponse = await fetch(`https://77h9ikcj6vgw.manus.space/api/players/${user.player_id}/tournaments`)
+      const playerTournamentsData = await playerTournamentsResponse.json()
+      
+      setTournaments(tournamentsData.tournaments || [])
+      setPlayerTournaments(playerTournamentsData)
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error)
+    } finally {
+      setLoading(false)
     }
-  ];
+  }
+
+  const getStatusBadge = (status) => {
+    const statusConfig = {
+      upcoming: { variant: 'secondary', label: 'Upcoming' },
+      in_progress: { variant: 'default', label: 'In Progress' },
+      completed: { variant: 'outline', label: 'Completed' }
+    }
+    
+    const config = statusConfig[status] || statusConfig.upcoming
+    return <Badge variant={config.variant}>{config.label}</Badge>
+  }
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">Loading dashboard...</div>
+      </div>
+    )
+  }
+
+  const upcomingTournaments = tournaments.filter(t => t.status === 'upcoming').slice(0, 3)
+  const activeTournaments = tournaments.filter(t => t.status === 'in_progress').slice(0, 3)
 
   return (
-    <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+    <div className="container mx-auto px-4 py-8">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 style={{ margin: '0 0 10px 0', fontSize: '32px', color: '#333' }}>Dashboard</h1>
-          <p style={{ margin: 0, color: '#666' }}>Welcome to your tournament management dashboard</p>
+          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-muted-foreground">Welcome back, {user.name}!</p>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          style={{
-            backgroundColor: '#007bff',
-            color: 'white',
-            border: 'none',
-            padding: '10px 20px',
-            borderRadius: '5px',
-            cursor: 'pointer',
-            fontSize: '14px'
-          }}
-        >
-          + Create Tournament
-        </button>
+        <Link to="/tournaments">
+          <Button className="flex items-center space-x-2">
+            <Plus className="h-4 w-4" />
+            <span>Create Tournament</span>
+          </Button>
+        </Link>
       </div>
 
-      {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '30px' }}>
-        <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', border: '1px solid #ddd' }}>
-          <h3 style={{ margin: '0 0 10px 0', color: '#333' }}>Total Tournaments</h3>
-          <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#007bff' }}>{stats.totalTournaments}</p>
-        </div>
-        <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', border: '1px solid #ddd' }}>
-          <h3 style={{ margin: '0 0 10px 0', color: '#333' }}>Active Tournaments</h3>
-          <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#28a745' }}>{stats.activeTournaments}</p>
-        </div>
-        <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', border: '1px solid #ddd' }}>
-          <h3 style={{ margin: '0 0 10px 0', color: '#333' }}>Total Players</h3>
-          <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#6f42c1' }}>{stats.totalPlayers}</p>
-        </div>
-        <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', border: '1px solid #ddd' }}>
-          <h3 style={{ margin: '0 0 10px 0', color: '#333' }}>Total Prize Pool</h3>
-          <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#fd7e14' }}>${stats.totalPrize}</p>
-        </div>
-      </div>
-
-      {/* Recent Tournaments */}
-      <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', border: '1px solid #ddd' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h2 style={{ margin: 0, color: '#333' }}>Recent Tournaments</h2>
-          <Link 
-            to="/tournaments"
-            style={{ 
-              color: '#007bff', 
-              textDecoration: 'none',
-              padding: '5px 10px',
-              border: '1px solid #007bff',
-              borderRadius: '3px'
-            }}
-          >
-            View All
-          </Link>
-        </div>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Current Tournaments</CardTitle>
+            <Trophy className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{playerTournaments.current_tournaments?.length || 0}</div>
+          </CardContent>
+        </Card>
         
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {recentTournaments.map(tournament => (
-            <div 
-              key={tournament.id}
-              style={{ 
-                padding: '15px', 
-                border: '1px solid #eee', 
-                borderRadius: '5px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}
-            >
-              <div>
-                <h4 style={{ margin: '0 0 5px 0', color: '#333' }}>{tournament.name}</h4>
-                <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>{tournament.date}</p>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <span 
-                  style={{ 
-                    padding: '3px 8px', 
-                    borderRadius: '3px', 
-                    fontSize: '12px',
-                    backgroundColor: tournament.status === 'Active' ? '#d4edda' : 
-                                   tournament.status === 'Upcoming' ? '#d1ecf1' : '#f8d7da',
-                    color: tournament.status === 'Active' ? '#155724' : 
-                           tournament.status === 'Upcoming' ? '#0c5460' : '#721c24'
-                  }}
-                >
-                  {tournament.status}
-                </span>
-                <p style={{ margin: '5px 0 0 0', color: '#666', fontSize: '14px' }}>{tournament.players} players</p>
-              </div>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Past Tournaments</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{playerTournaments.past_tournaments?.length || 0}</div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Wins</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {playerTournaments.past_tournaments?.reduce((total, t) => total + (t.wins || 0), 0) || 0}
             </div>
-          ))}
-        </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Tournaments</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{activeTournaments.length}</div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Create Tournament Modal */}
-      {showCreateModal && (
-        <CreateTournamentModal
-          isOpen={showCreateModal}
-          onClose={() => setShowCreateModal(false)}
-          onTournamentCreated={(tournament) => {
-            console.log('Tournament created:', tournament);
-            setShowCreateModal(false);
-          }}
-        />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* My Current Tournaments */}
+        <Card>
+          <CardHeader>
+            <CardTitle>My Current Tournaments</CardTitle>
+            <CardDescription>Tournaments you're currently participating in</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {playerTournaments.current_tournaments?.length > 0 ? (
+              <div className="space-y-4">
+                {playerTournaments.current_tournaments.map((tournament) => (
+                  <div key={tournament.tournament_id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div>
+                      <h3 className="font-medium">{tournament.name}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(tournament.date).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      {getStatusBadge(tournament.status)}
+                      <Link to={`/tournaments/${tournament.tournament_id}`}>
+                        <Button variant="outline" size="sm">View</Button>
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-center py-8">
+                You're not currently enrolled in any tournaments.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Upcoming Tournaments */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Upcoming Tournaments</CardTitle>
+            <CardDescription>Join these upcoming tournaments</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {upcomingTournaments.length > 0 ? (
+              <div className="space-y-4">
+                {upcomingTournaments.map((tournament) => (
+                  <div key={tournament.tournament_id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div>
+                      <h3 className="font-medium">{tournament.name}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(tournament.date).toLocaleDateString()} • {tournament.enrollment_count} players
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      {getStatusBadge(tournament.status)}
+                      <Link to={`/tournaments/${tournament.tournament_id}`}>
+                        <Button variant="outline" size="sm">Join</Button>
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-center py-8">
+                No upcoming tournaments available.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recent Tournament History */}
+      {playerTournaments.past_tournaments?.length > 0 && (
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle>Recent Tournament History</CardTitle>
+            <CardDescription>Your performance in past tournaments</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {playerTournaments.past_tournaments.slice(0, 5).map((tournament) => (
+                <div key={tournament.tournament_id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div>
+                    <h3 className="font-medium">{tournament.name}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {new Date(tournament.date).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-medium">
+                      {tournament.wins}W - {tournament.losses}L
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Score: {tournament.total_score}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
-  );
-};
+  )
+}
 
-export default Dashboard;
+export default Dashboard
