@@ -1,222 +1,264 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Button } from './ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
-import { Badge } from './ui/badge'
-import { Trophy, Calendar, Users, TrendingUp, Plus } from 'lucide-react'
 
-const Dashboard = ({ user }) => {
+const Dashboard = ({ user = { name: 'Player', player_id: 1 } }) => {
   const [tournaments, setTournaments] = useState([])
-  const [playerTournaments, setPlayerTournaments] = useState({ current_tournaments: [], past_tournaments: [] })
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    fetchDashboardData()
-  }, [user])
-
-  const fetchDashboardData = async () => {
-    try {
-      // Fetch all tournaments
-      const tournamentsResponse = await fetch('https://77h9ikcj6vgw.manus.space/api/tournaments')
-      const tournamentsData = await tournamentsResponse.json()
-      
-      // Fetch player's tournaments
-      const playerTournamentsResponse = await fetch(`https://77h9ikcj6vgw.manus.space/api/players/${user.player_id}/tournaments`)
-      const playerTournamentsData = await playerTournamentsResponse.json()
-      
-      setTournaments(tournamentsData.tournaments || [])
-      setPlayerTournaments(playerTournamentsData)
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error)
-    } finally {
-      setLoading(false)
+  // Sample data for immediate display
+  const sampleTournaments = [
+    {
+      tournament_id: 1,
+      name: "Spring Championship",
+      date: "2025-07-15",
+      status: "upcoming",
+      enrollment_count: 12,
+      max_players: 16
+    },
+    {
+      tournament_id: 2,
+      name: "Weekly Tournament",
+      date: "2025-07-08",
+      status: "in_progress",
+      enrollment_count: 8,
+      max_players: 8
     }
+  ]
+
+  const playerStats = {
+    current_tournaments: sampleTournaments.filter(t => t.status !== 'completed'),
+    past_tournaments: [
+      { tournament_id: 3, name: "Previous Tournament", wins: 5, losses: 2, total_score: 150 }
+    ]
   }
 
   const getStatusBadge = (status) => {
-    const statusConfig = {
-      upcoming: { variant: 'secondary', label: 'Upcoming' },
-      in_progress: { variant: 'default', label: 'In Progress' },
-      completed: { variant: 'outline', label: 'Completed' }
+    const styles = {
+      upcoming: { backgroundColor: '#dbeafe', color: '#1e40af', padding: '4px 12px', borderRadius: '12px', fontSize: '12px' },
+      in_progress: { backgroundColor: '#dcfce7', color: '#166534', padding: '4px 12px', borderRadius: '12px', fontSize: '12px' },
+      completed: { backgroundColor: '#f3f4f6', color: '#374151', padding: '4px 12px', borderRadius: '12px', fontSize: '12px' }
     }
     
-    const config = statusConfig[status] || statusConfig.upcoming
-    return <Badge variant={config.variant}>{config.label}</Badge>
-  }
-
-  if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">Loading dashboard...</div>
-      </div>
+      <span style={styles[status] || styles.upcoming}>
+        {status === 'upcoming' ? 'Upcoming' : status === 'in_progress' ? 'In Progress' : 'Completed'}
+      </span>
     )
   }
 
-  const upcomingTournaments = tournaments.filter(t => t.status === 'upcoming').slice(0, 3)
-  const activeTournaments = tournaments.filter(t => t.status === 'in_progress').slice(0, 3)
-
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 16px' }}>
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', paddingTop: '32px' }}>
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground">Welcome back, {user.name}!</p>
+          <h1 style={{ fontSize: '30px', fontWeight: 'bold', color: '#111827', margin: 0 }}>Dashboard</h1>
+          <p style={{ color: '#6b7280', margin: '8px 0 0 0' }}>Welcome back, {user.name}!</p>
         </div>
-        <Link to="/tournaments">
-          <Button className="flex items-center space-x-2">
-            <Plus className="h-4 w-4" />
+        <Link to="/tournaments" style={{ textDecoration: 'none' }}>
+          <button style={{
+            backgroundColor: '#2563eb',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            padding: '12px 24px',
+            fontSize: '14px',
+            fontWeight: '500',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <span>+</span>
             <span>Create Tournament</span>
-          </Button>
+          </button>
         </Link>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Current Tournaments</CardTitle>
-            <Trophy className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{playerTournaments.current_tournaments?.length || 0}</div>
-          </CardContent>
-        </Card>
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
+        gap: '24px', 
+        marginBottom: '32px' 
+      }}>
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '8px',
+          border: '1px solid #e5e7eb',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+          padding: '24px'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <h3 style={{ fontSize: '14px', fontWeight: '500', color: '#111827', margin: 0 }}>Current Tournaments</h3>
+            <span style={{ fontSize: '16px' }}>🏆</span>
+          </div>
+          <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#111827' }}>
+            {playerStats.current_tournaments.length}
+          </div>
+        </div>
         
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Past Tournaments</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{playerTournaments.past_tournaments?.length || 0}</div>
-          </CardContent>
-        </Card>
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '8px',
+          border: '1px solid #e5e7eb',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+          padding: '24px'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <h3 style={{ fontSize: '14px', fontWeight: '500', color: '#111827', margin: 0 }}>Past Tournaments</h3>
+            <span style={{ fontSize: '16px' }}>📅</span>
+          </div>
+          <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#111827' }}>
+            {playerStats.past_tournaments.length}
+          </div>
+        </div>
         
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Wins</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {playerTournaments.past_tournaments?.reduce((total, t) => total + (t.wins || 0), 0) || 0}
-            </div>
-          </CardContent>
-        </Card>
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '8px',
+          border: '1px solid #e5e7eb',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+          padding: '24px'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <h3 style={{ fontSize: '14px', fontWeight: '500', color: '#111827', margin: 0 }}>Total Wins</h3>
+            <span style={{ fontSize: '16px' }}>📈</span>
+          </div>
+          <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#111827' }}>
+            {playerStats.past_tournaments.reduce((total, t) => total + (t.wins || 0), 0)}
+          </div>
+        </div>
         
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Tournaments</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{activeTournaments.length}</div>
-          </CardContent>
-        </Card>
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '8px',
+          border: '1px solid #e5e7eb',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+          padding: '24px'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <h3 style={{ fontSize: '14px', fontWeight: '500', color: '#111827', margin: 0 }}>Active Tournaments</h3>
+            <span style={{ fontSize: '16px' }}>👥</span>
+          </div>
+          <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#111827' }}>
+            {sampleTournaments.filter(t => t.status === 'in_progress').length}
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '32px' }}>
         {/* My Current Tournaments */}
-        <Card>
-          <CardHeader>
-            <CardTitle>My Current Tournaments</CardTitle>
-            <CardDescription>Tournaments you're currently participating in</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {playerTournaments.current_tournaments?.length > 0 ? (
-              <div className="space-y-4">
-                {playerTournaments.current_tournaments.map((tournament) => (
-                  <div key={tournament.tournament_id} className="flex items-center justify-between p-4 border rounded-lg">
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '8px',
+          border: '1px solid #e5e7eb',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+        }}>
+          <div style={{ padding: '24px 24px 16px' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', margin: 0 }}>My Current Tournaments</h2>
+            <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0 0 0' }}>Tournaments you're currently participating in</p>
+          </div>
+          <div style={{ padding: '0 24px 24px' }}>
+            {playerStats.current_tournaments.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {playerStats.current_tournaments.map((tournament) => (
+                  <div key={tournament.tournament_id} style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '16px',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px'
+                  }}>
                     <div>
-                      <h3 className="font-medium">{tournament.name}</h3>
-                      <p className="text-sm text-muted-foreground">
+                      <h3 style={{ fontSize: '16px', fontWeight: '500', color: '#111827', margin: 0 }}>{tournament.name}</h3>
+                      <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0 0 0' }}>
                         {new Date(tournament.date).toLocaleDateString()}
                       </p>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       {getStatusBadge(tournament.status)}
-                      <Link to={`/tournaments/${tournament.tournament_id}`}>
-                        <Button variant="outline" size="sm">View</Button>
+                      <Link to={`/tournaments/${tournament.tournament_id}`} style={{ textDecoration: 'none' }}>
+                        <button style={{
+                          backgroundColor: 'white',
+                          color: '#374151',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '6px',
+                          padding: '6px 12px',
+                          fontSize: '12px',
+                          cursor: 'pointer'
+                        }}>
+                          View
+                        </button>
                       </Link>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-muted-foreground text-center py-8">
+              <p style={{ color: '#9ca3af', textAlign: 'center', padding: '32px 0' }}>
                 You're not currently enrolled in any tournaments.
               </p>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Upcoming Tournaments */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Upcoming Tournaments</CardTitle>
-            <CardDescription>Join these upcoming tournaments</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {upcomingTournaments.length > 0 ? (
-              <div className="space-y-4">
-                {upcomingTournaments.map((tournament) => (
-                  <div key={tournament.tournament_id} className="flex items-center justify-between p-4 border rounded-lg">
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '8px',
+          border: '1px solid #e5e7eb',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+        }}>
+          <div style={{ padding: '24px 24px 16px' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', margin: 0 }}>Upcoming Tournaments</h2>
+            <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0 0 0' }}>Join these upcoming tournaments</p>
+          </div>
+          <div style={{ padding: '0 24px 24px' }}>
+            {sampleTournaments.filter(t => t.status === 'upcoming').length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {sampleTournaments.filter(t => t.status === 'upcoming').map((tournament) => (
+                  <div key={tournament.tournament_id} style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '16px',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px'
+                  }}>
                     <div>
-                      <h3 className="font-medium">{tournament.name}</h3>
-                      <p className="text-sm text-muted-foreground">
+                      <h3 style={{ fontSize: '16px', fontWeight: '500', color: '#111827', margin: 0 }}>{tournament.name}</h3>
+                      <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0 0 0' }}>
                         {new Date(tournament.date).toLocaleDateString()} • {tournament.enrollment_count} players
                       </p>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       {getStatusBadge(tournament.status)}
-                      <Link to={`/tournaments/${tournament.tournament_id}`}>
-                        <Button variant="outline" size="sm">Join</Button>
+                      <Link to={`/tournaments/${tournament.tournament_id}`} style={{ textDecoration: 'none' }}>
+                        <button style={{
+                          backgroundColor: 'white',
+                          color: '#374151',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '6px',
+                          padding: '6px 12px',
+                          fontSize: '12px',
+                          cursor: 'pointer'
+                        }}>
+                          Join
+                        </button>
                       </Link>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-muted-foreground text-center py-8">
+              <p style={{ color: '#9ca3af', textAlign: 'center', padding: '32px 0' }}>
                 No upcoming tournaments available.
               </p>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
-
-      {/* Recent Tournament History */}
-      {playerTournaments.past_tournaments?.length > 0 && (
-        <Card className="mt-8">
-          <CardHeader>
-            <CardTitle>Recent Tournament History</CardTitle>
-            <CardDescription>Your performance in past tournaments</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {playerTournaments.past_tournaments.slice(0, 5).map((tournament) => (
-                <div key={tournament.tournament_id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div>
-                    <h3 className="font-medium">{tournament.name}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(tournament.date).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm font-medium">
-                      {tournament.wins}W - {tournament.losses}L
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Score: {tournament.total_score}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   )
 }

@@ -1,43 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState } from 'react'
 
 const PlayerProfile = () => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [profile, setProfile] = useState({
+  const [activeTab, setActiveTab] = useState('overview')
+  const [isEditing, setIsEditing] = useState(false)
+  const [profileData, setProfileData] = useState({
     name: 'John Doe',
     email: 'john.doe@example.com',
     phone: '+1 (555) 123-4567',
     location: 'New York, NY',
+    bio: 'Passionate backgammon player with 5 years of experience.',
     rank: 'Gold',
-    bio: 'Passionate backgammon player with 5 years of experience.'
-  });
+    totalTournaments: 15,
+    wins: 12,
+    winRate: 80
+  })
 
-  const [editForm, setEditForm] = useState(profile);
-
-  const stats = {
-    totalTournaments: 24,
-    wins: 18,
-    losses: 6,
-    winRate: 75,
-    currentStreak: 5,
-    totalPrize: 2500
-  };
-
-  const recentTournaments = [
-    { id: 1, name: 'Spring Championship', position: 1, date: 'June 20, 2025', prize: 500 },
-    { id: 2, name: 'Weekly Cup #45', position: 2, date: 'June 15, 2025', prize: 150 },
-    { id: 3, name: 'Elite Masters', position: 1, date: 'June 10, 2025', prize: 800 },
-    { id: 4, name: 'Beginner Friendly', position: 3, date: 'June 5, 2025', prize: 50 }
-  ];
-
-  const handleSave = () => {
-    setProfile(editForm);
-    setIsEditing(false);
-  };
-
-  const handleCancel = () => {
-    setEditForm(profile);
-    setIsEditing(false);
-  };
+  const getRankIcon = (rank) => {
+    const icons = {
+      'Bronze': '🥉',
+      'Silver': '🥈', 
+      'Gold': '🥇',
+      'Platinum': '💎',
+      'Diamond': '💍'
+    }
+    return icons[rank] || '🏆'
+  }
 
   const getRankColor = (rank) => {
     const colors = {
@@ -46,226 +33,280 @@ const PlayerProfile = () => {
       'Gold': '#ffd700',
       'Platinum': '#e5e4e2',
       'Diamond': '#b9f2ff'
-    };
-    return colors[rank] || '#666';
-  };
+    }
+    return colors[rank] || '#ffd700'
+  }
+
+  const tabs = [
+    { id: 'overview', label: 'Overview' },
+    { id: 'statistics', label: 'Statistics' },
+    { id: 'tournaments', label: 'Tournaments' },
+    { id: 'achievements', label: 'Achievements' },
+    { id: 'settings', label: 'Settings' }
+  ]
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'overview':
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            {/* Quick Stats */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+              <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', border: '1px solid #e5e7eb', textAlign: 'center' }}>
+                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#111827' }}>{profileData.totalTournaments}</div>
+                <div style={{ fontSize: '14px', color: '#6b7280' }}>Total Tournaments</div>
+              </div>
+              <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', border: '1px solid #e5e7eb', textAlign: 'center' }}>
+                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#16a34a' }}>{profileData.wins}</div>
+                <div style={{ fontSize: '14px', color: '#6b7280' }}>Wins</div>
+              </div>
+              <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', border: '1px solid #e5e7eb', textAlign: 'center' }}>
+                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#2563eb' }}>{profileData.winRate}%</div>
+                <div style={{ fontSize: '14px', color: '#6b7280' }}>Win Rate</div>
+              </div>
+            </div>
+
+            {/* Recent Activity */}
+            <div style={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', padding: '24px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginBottom: '16px' }}>Recent Activity</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '6px' }}>
+                  <span style={{ fontSize: '16px' }}>🏆</span>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: '500', color: '#111827' }}>Won Spring Championship</div>
+                    <div style={{ fontSize: '12px', color: '#6b7280' }}>2 days ago</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '6px' }}>
+                  <span style={{ fontSize: '16px' }}>📈</span>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: '500', color: '#111827' }}>Rank promoted to Gold</div>
+                    <div style={{ fontSize: '12px', color: '#6b7280' }}>1 week ago</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+
+      case 'statistics':
+        return (
+          <div style={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', padding: '24px' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginBottom: '16px' }}>Performance Statistics</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
+              <div>
+                <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '8px' }}>Win Rate</div>
+                <div style={{ backgroundColor: '#f3f4f6', borderRadius: '8px', height: '8px', overflow: 'hidden' }}>
+                  <div style={{ backgroundColor: '#16a34a', height: '100%', width: `${profileData.winRate}%` }}></div>
+                </div>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>{profileData.winRate}%</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '8px' }}>Tournament Participation</div>
+                <div style={{ backgroundColor: '#f3f4f6', borderRadius: '8px', height: '8px', overflow: 'hidden' }}>
+                  <div style={{ backgroundColor: '#2563eb', height: '100%', width: '75%' }}></div>
+                </div>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>75% active</div>
+              </div>
+            </div>
+          </div>
+        )
+
+      case 'tournaments':
+        return (
+          <div style={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', padding: '24px' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginBottom: '16px' }}>Tournament History</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+                <div>
+                  <div style={{ fontSize: '16px', fontWeight: '500', color: '#111827' }}>Spring Championship</div>
+                  <div style={{ fontSize: '14px', color: '#6b7280' }}>March 2025 • 1st Place</div>
+                </div>
+                <span style={{ backgroundColor: '#dcfce7', color: '#166534', padding: '4px 12px', borderRadius: '12px', fontSize: '12px' }}>Won</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+                <div>
+                  <div style={{ fontSize: '16px', fontWeight: '500', color: '#111827' }}>Weekly Tournament</div>
+                  <div style={{ fontSize: '14px', color: '#6b7280' }}>February 2025 • 3rd Place</div>
+                </div>
+                <span style={{ backgroundColor: '#dbeafe', color: '#1e40af', padding: '4px 12px', borderRadius: '12px', fontSize: '12px' }}>Placed</span>
+              </div>
+            </div>
+          </div>
+        )
+
+      case 'achievements':
+        return (
+          <div style={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', padding: '24px' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginBottom: '16px' }}>Achievements</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+              <div style={{ padding: '16px', border: '1px solid #e5e7eb', borderRadius: '8px', textAlign: 'center' }}>
+                <div style={{ fontSize: '24px', marginBottom: '8px' }}>🏆</div>
+                <div style={{ fontSize: '14px', fontWeight: '500', color: '#111827' }}>First Victory</div>
+                <div style={{ fontSize: '12px', color: '#6b7280' }}>Win your first tournament</div>
+              </div>
+              <div style={{ padding: '16px', border: '1px solid #e5e7eb', borderRadius: '8px', textAlign: 'center' }}>
+                <div style={{ fontSize: '24px', marginBottom: '8px' }}>🔥</div>
+                <div style={{ fontSize: '14px', fontWeight: '500', color: '#111827' }}>Winning Streak</div>
+                <div style={{ fontSize: '12px', color: '#6b7280' }}>Win 5 games in a row</div>
+              </div>
+            </div>
+          </div>
+        )
+
+      case 'settings':
+        return (
+          <div style={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', padding: '24px' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginBottom: '16px' }}>Account Settings</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#111827', marginBottom: '8px' }}>
+                  Email Notifications
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                  <input type="checkbox" defaultChecked />
+                  <span style={{ fontSize: '14px', color: '#6b7280' }}>Receive tournament updates</span>
+                </label>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#111827', marginBottom: '8px' }}>
+                  Privacy
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                  <input type="checkbox" defaultChecked />
+                  <span style={{ fontSize: '14px', color: '#6b7280' }}>Make profile public</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        )
+
+      default:
+        return null
+    }
+  }
 
   return (
-    <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-        <div>
-          <h1 style={{ margin: '0 0 10px 0', fontSize: '32px', color: '#333' }}>Player Profile</h1>
-          <p style={{ margin: 0, color: '#666' }}>Manage your tournament profile</p>
-        </div>
-        {!isEditing && (
-          <button
-            onClick={() => setIsEditing(true)}
-            style={{
-              backgroundColor: '#007bff',
-              color: 'white',
-              border: 'none',
-              padding: '10px 20px',
-              borderRadius: '5px',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            Edit Profile
-          </button>
-        )}
+    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 16px' }}>
+      {/* Header */}
+      <div style={{ paddingTop: '32px', marginBottom: '32px' }}>
+        <h1 style={{ fontSize: '30px', fontWeight: 'bold', color: '#111827', margin: 0 }}>Player Profile</h1>
+        <p style={{ color: '#6b7280', margin: '8px 0 0 0' }}>Manage your profile and view your tournament history</p>
       </div>
 
       {/* Profile Header */}
-      <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '8px', border: '1px solid #ddd', marginBottom: '20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '30px' }}>
-          {/* Avatar */}
-          <div 
-            style={{ 
-              width: '100px', 
-              height: '100px', 
-              borderRadius: '50%', 
-              backgroundColor: getRankColor(profile.rank),
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '36px',
-              color: 'white',
-              fontWeight: 'bold'
-            }}
-          >
-            {profile.rank === 'Gold' ? '🥇' : profile.rank === 'Silver' ? '🥈' : profile.rank === 'Bronze' ? '🥉' : profile.rank.charAt(0)}
-          </div>
-
-          {/* Profile Info */}
-          <div style={{ flex: 1 }}>
-            {isEditing ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <input
-                  type="text"
-                  value={editForm.name}
-                  onChange={(e) => setEditForm({...editForm, name: e.target.value})}
-                  style={{ padding: '8px', border: '1px solid #ddd', borderRadius: '3px', fontSize: '18px' }}
-                />
-                <input
-                  type="email"
-                  value={editForm.email}
-                  onChange={(e) => setEditForm({...editForm, email: e.target.value})}
-                  style={{ padding: '8px', border: '1px solid #ddd', borderRadius: '3px' }}
-                />
-                <input
-                  type="tel"
-                  value={editForm.phone}
-                  onChange={(e) => setEditForm({...editForm, phone: e.target.value})}
-                  style={{ padding: '8px', border: '1px solid #ddd', borderRadius: '3px' }}
-                />
-                <input
-                  type="text"
-                  value={editForm.location}
-                  onChange={(e) => setEditForm({...editForm, location: e.target.value})}
-                  style={{ padding: '8px', border: '1px solid #ddd', borderRadius: '3px' }}
-                />
-                <textarea
-                  value={editForm.bio}
-                  onChange={(e) => setEditForm({...editForm, bio: e.target.value})}
-                  style={{ padding: '8px', border: '1px solid #ddd', borderRadius: '3px', minHeight: '60px' }}
-                />
-                <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                  <button
-                    onClick={handleSave}
-                    style={{
-                      backgroundColor: '#28a745',
-                      color: 'white',
-                      border: 'none',
-                      padding: '8px 16px',
-                      borderRadius: '3px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Save
-                  </button>
-                  <button
-                    onClick={handleCancel}
-                    style={{
-                      backgroundColor: '#6c757d',
-                      color: 'white',
-                      border: 'none',
-                      padding: '8px 16px',
-                      borderRadius: '3px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div>
-                <h2 style={{ margin: '0 0 10px 0', fontSize: '24px', color: '#333' }}>{profile.name}</h2>
-                <div style={{ marginBottom: '10px' }}>
-                  <span 
-                    style={{ 
-                      padding: '4px 12px', 
-                      borderRadius: '15px', 
-                      fontSize: '14px',
-                      backgroundColor: getRankColor(profile.rank),
-                      color: 'white'
-                    }}
-                  >
-                    {profile.rank} Rank
-                  </span>
-                </div>
-                <p style={{ margin: '5px 0', color: '#666' }}>{profile.email}</p>
-                <p style={{ margin: '5px 0', color: '#666' }}>{profile.phone}</p>
-                <p style={{ margin: '5px 0', color: '#666' }}>{profile.location}</p>
-                <p style={{ margin: '10px 0 0 0', color: '#666' }}>{profile.bio}</p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Stats and Recent Tournaments */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-        {/* Statistics */}
-        <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', border: '1px solid #ddd' }}>
-          <h3 style={{ margin: '0 0 20px 0', color: '#333' }}>Statistics</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-            <div style={{ textAlign: 'center' }}>
-              <p style={{ margin: '0 0 5px 0', fontSize: '24px', fontWeight: 'bold', color: '#007bff' }}>{stats.totalTournaments}</p>
-              <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>Tournaments</p>
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <p style={{ margin: '0 0 5px 0', fontSize: '24px', fontWeight: 'bold', color: '#28a745' }}>{stats.winRate}%</p>
-              <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>Win Rate</p>
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <p style={{ margin: '0 0 5px 0', fontSize: '24px', fontWeight: 'bold', color: '#fd7e14' }}>{stats.currentStreak}</p>
-              <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>Current Streak</p>
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <p style={{ margin: '0 0 5px 0', fontSize: '24px', fontWeight: 'bold', color: '#6f42c1' }}>${stats.totalPrize}</p>
-              <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>Total Prize</p>
-            </div>
+      <div style={{
+        backgroundColor: 'white',
+        borderRadius: '8px',
+        border: '1px solid #e5e7eb',
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+        padding: '24px',
+        marginBottom: '32px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '24px', marginBottom: '24px' }}>
+          {/* Profile Picture */}
+          <div style={{
+            width: '80px',
+            height: '80px',
+            borderRadius: '50%',
+            backgroundColor: '#f3f4f6',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '32px',
+            color: '#6b7280'
+          }}>
+            👤
           </div>
           
-          <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid #eee' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-              <span style={{ color: '#666' }}>Wins: {stats.wins}</span>
-              <span style={{ color: '#666' }}>Losses: {stats.losses}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Recent Tournaments */}
-        <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', border: '1px solid #ddd' }}>
-          <h3 style={{ margin: '0 0 20px 0', color: '#333' }}>Recent Tournaments</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {recentTournaments.map(tournament => (
-              <div 
-                key={tournament.id}
-                style={{ 
-                  padding: '12px', 
-                  border: '1px solid #eee', 
-                  borderRadius: '5px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}
-              >
-                <div>
-                  <h4 style={{ margin: '0 0 5px 0', color: '#333', fontSize: '14px' }}>{tournament.name}</h4>
-                  <p style={{ margin: 0, color: '#666', fontSize: '12px' }}>{tournament.date}</p>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div 
-                    style={{ 
-                      width: '24px',
-                      height: '24px',
-                      borderRadius: '50%',
-                      backgroundColor: tournament.position === 1 ? '#ffd700' : 
-                                     tournament.position === 2 ? '#c0c0c0' : 
-                                     tournament.position === 3 ? '#cd7f32' : '#ddd',
-                      color: 'white',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '12px',
-                      fontWeight: 'bold',
-                      marginBottom: '5px',
-                      marginLeft: 'auto'
-                    }}
-                  >
-                    {tournament.position}
-                  </div>
-                  <p style={{ margin: 0, color: '#28a745', fontSize: '12px', fontWeight: 'bold' }}>${tournament.prize}</p>
-                </div>
+          {/* Profile Info */}
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+              <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#111827', margin: 0 }}>{profileData.name}</h2>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                backgroundColor: getRankColor(profileData.rank),
+                color: 'white',
+                padding: '4px 12px',
+                borderRadius: '12px',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}>
+                <span>{getRankIcon(profileData.rank)}</span>
+                <span>{profileData.rank} Rank</span>
               </div>
-            ))}
+            </div>
+            <p style={{ color: '#6b7280', margin: '0 0 8px 0' }}>{profileData.email}</p>
+            <p style={{ color: '#6b7280', margin: 0 }}>{profileData.location}</p>
           </div>
+          
+          {/* Edit Button */}
+          <button
+            onClick={() => setIsEditing(!isEditing)}
+            style={{
+              backgroundColor: isEditing ? '#16a34a' : '#2563eb',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              padding: '8px 16px',
+              fontSize: '14px',
+              cursor: 'pointer'
+            }}
+          >
+            {isEditing ? 'Save' : 'Edit Profile'}
+          </button>
+        </div>
+        
+        {/* Bio */}
+        {isEditing ? (
+          <textarea
+            value={profileData.bio}
+            onChange={(e) => setProfileData({...profileData, bio: e.target.value})}
+            style={{
+              width: '100%',
+              padding: '12px',
+              border: '1px solid #d1d5db',
+              borderRadius: '6px',
+              fontSize: '14px',
+              resize: 'vertical',
+              minHeight: '80px'
+            }}
+          />
+        ) : (
+          <p style={{ color: '#6b7280', fontSize: '14px', lineHeight: '1.5' }}>{profileData.bio}</p>
+        )}
+      </div>
+
+      {/* Tabs */}
+      <div style={{ marginBottom: '24px' }}>
+        <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb' }}>
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                padding: '12px 24px',
+                border: 'none',
+                backgroundColor: 'transparent',
+                color: activeTab === tab.id ? '#2563eb' : '#6b7280',
+                borderBottom: activeTab === tab.id ? '2px solid #2563eb' : '2px solid transparent',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
       </div>
-    </div>
-  );
-};
 
-export default PlayerProfile;
+      {/* Tab Content */}
+      {renderTabContent()}
+    </div>
+  )
+}
+
+export default PlayerProfile
