@@ -1,598 +1,927 @@
-import { useState } from 'react'
-import { X, Plus, Trash2, Users, Calendar, FileText, Trophy, Shuffle } from 'lucide-react'
+import React, { useState, useEffect } from 'react';
+import { 
+  X,
+  Plus,
+  Minus,
+  Users,
+  Trophy,
+  Calendar,
+  MapPin,
+  DollarSign,
+  Clock,
+  Settings,
+  Save,
+  Upload,
+  Shuffle,
+  Check,
+  AlertCircle,
+  Info,
+  Star,
+  Target,
+  Zap,
+  Award,
+  FileText,
+  Image as ImageIcon,
+  ArrowRight,
+  ArrowLeft
+} from 'lucide-react';
 
-// Import the bracket generator utility
-import BracketGenerator from '../utils/bracketGenerator'
-
-const CreateTournamentModal = ({ isOpen, onClose, onTournamentCreated, user }) => {
-  const [formData, setFormData] = useState({
+const CreateTournamentModal = ({ isOpen, onClose, onTournamentCreated }) => {
+  const [currentStep, setCurrentStep] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
+  
+  const [tournamentData, setTournamentData] = useState({
+    // Basic Information
     name: '',
-    date: '',
     description: '',
+    format: 'single-elimination',
+    maxPlayers: 16,
+    entryFee: 0,
+    prizePool: 0,
+    
+    // Schedule
+    startDate: '',
+    startTime: '',
+    endDate: '',
+    endTime: '',
+    registrationDeadline: '',
+    
+    // Location
+    location: '',
+    venue: '',
+    address: '',
+    
+    // Rules & Settings
     rules: '',
-    entry_fee: '',
-    max_players: 8
-  })
-  
-  const [players, setPlayers] = useState([
-    { id: 1, name: '' },
-    { id: 2, name: '' }
-  ])
-  
-  const [currentStep, setCurrentStep] = useState(1) // 1: Basic Info, 2: Players, 3: Review
-  const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState('')
-  const [generatedBracket, setGeneratedBracket] = useState(null)
-
-  const handleChange = (e) => {
-    const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }))
-  }
-
-  const handlePlayerNameChange = (playerId, name) => {
-    setPlayers(prev => prev.map(player => 
-      player.id === playerId ? { ...player, name } : player
-    ))
-  }
-
-  const addPlayer = () => {
-    if (players.length < formData.max_players) {
-      const newId = Math.max(...players.map(p => p.id)) + 1
-      setPlayers(prev => [...prev, { id: newId, name: '' }])
-    }
-  }
-
-  const removePlayer = (playerId) => {
-    if (players.length > 2) {
-      setPlayers(prev => prev.filter(player => player.id !== playerId))
-    }
-  }
-
-  const shufflePlayers = () => {
-    setPlayers(prev => [...prev].sort(() => Math.random() - 0.5))
-  }
-
-  const generateBracket = () => {
-    const validPlayers = players.filter(p => p.name.trim() !== '')
+    gameSettings: {
+      matchDuration: 30,
+      pointsToWin: 15,
+      timeControl: 'standard'
+    },
     
-    if (validPlayers.length < 2) {
-      setMessage('At least 2 players with names are required')
-      return
-    }
-
-    try {
-      const bracket = BracketGenerator.generateBracket(validPlayers)
-      setGeneratedBracket(bracket)
-      setMessage('')
-    } catch (error) {
-      setMessage(`Error generating bracket: ${error.message}`)
-    }
-  }
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setLoading(true)
-    setMessage('')
-
-    const validPlayers = players.filter(p => p.name.trim() !== '')
+    // Players
+    players: [],
+    allowRegistration: true,
+    requireApproval: false,
     
-    if (validPlayers.length < 2) {
-      setMessage('At least 2 players with names are required')
-      setLoading(false)
-      return
+    // Media
+    banner: null,
+    logo: null,
+    
+    // Advanced
+    isPrivate: false,
+    password: '',
+    category: 'general'
+  });
+
+  const steps = [
+    { id: 1, title: 'Basic Info', icon: FileText },
+    { id: 2, title: 'Schedule', icon: Calendar },
+    { id: 3, title: 'Players', icon: Users },
+    { id: 4, title: 'Settings', icon: Settings }
+  ];
+
+  const tournamentFormats = [
+    {
+      id: 'single-elimination',
+      name: 'Single Elimination',
+      description: 'Players are eliminated after one loss',
+      icon: Target,
+      recommended: true
+    },
+    {
+      id: 'double-elimination',
+      name: 'Double Elimination',
+      description: 'Players get a second chance in losers bracket',
+      icon: Zap,
+      recommended: false
+    },
+    {
+      id: 'round-robin',
+      name: 'Round Robin',
+      description: 'Every player plays every other player',
+      icon: Award,
+      recommended: false
+    },
+    {
+      id: 'swiss-system',
+      name: 'Swiss System',
+      description: 'Players paired based on performance',
+      icon: Star,
+      recommended: false
     }
+  ];
 
-    try {
-      // Generate the bracket
-      const bracket = BracketGenerator.generateBracket(validPlayers)
-      
-      // Prepare tournament data
-      const tournamentData = {
-        ...formData,
-        players: validPlayers,
-        bracket: bracket,
-        created_by: user.player_id,
-        status: 'upcoming'
-      }
+  const categories = [
+    { id: 'general', name: 'General Tournament' },
+    { id: 'beginner', name: 'Beginner Friendly' },
+    { id: 'intermediate', name: 'Intermediate Level' },
+    { id: 'advanced', name: 'Advanced Players' },
+    { id: 'professional', name: 'Professional League' },
+    { id: 'casual', name: 'Casual Play' }
+  ];
 
-      // Create tournament via API
-      const response = await fetch('https://77h9ikcj6vgw.manus.space/api/tournaments', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+  // Reset form when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setCurrentStep(1);
+      setErrors({});
+      setTournamentData({
+        name: '',
+        description: '',
+        format: 'single-elimination',
+        maxPlayers: 16,
+        entryFee: 0,
+        prizePool: 0,
+        startDate: '',
+        startTime: '',
+        endDate: '',
+        endTime: '',
+        registrationDeadline: '',
+        location: '',
+        venue: '',
+        address: '',
+        rules: '',
+        gameSettings: {
+          matchDuration: 30,
+          pointsToWin: 15,
+          timeControl: 'standard'
         },
-        body: JSON.stringify(tournamentData),
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        setMessage('Tournament created successfully!')
-        setTimeout(() => {
-          onTournamentCreated(data.tournament)
-          onClose()
-          resetForm()
-        }, 1500)
-      } else {
-        setMessage(`Failed to create tournament: ${data.error || 'Unknown error'}`)
-      }
-    } catch (error) {
-      setMessage(`Error: ${error.message}`)
-    } finally {
-      setLoading(false)
+        players: [],
+        allowRegistration: true,
+        requireApproval: false,
+        banner: null,
+        logo: null,
+        isPrivate: false,
+        password: '',
+        category: 'general'
+      });
     }
-  }
+  }, [isOpen]);
 
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      date: '',
-      description: '',
-      rules: '',
-      entry_fee: '',
-      max_players: 8
-    })
-    setPlayers([
-      { id: 1, name: '' },
-      { id: 2, name: '' }
-    ])
-    setCurrentStep(1)
-    setMessage('')
-    setGeneratedBracket(null)
-  }
+  const handleInputChange = (field, value) => {
+    setTournamentData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    
+    // Clear error for this field
+    if (errors[field]) {
+      setErrors(prev => ({
+        ...prev,
+        [field]: null
+      }));
+    }
+  };
+
+  const handleNestedInputChange = (parent, field, value) => {
+    setTournamentData(prev => ({
+      ...prev,
+      [parent]: {
+        ...prev[parent],
+        [field]: value
+      }
+    }));
+  };
+
+  const validateStep = (step) => {
+    const newErrors = {};
+    
+    switch (step) {
+      case 1:
+        if (!tournamentData.name.trim()) {
+          newErrors.name = 'Tournament name is required';
+        }
+        if (!tournamentData.description.trim()) {
+          newErrors.description = 'Description is required';
+        }
+        if (tournamentData.maxPlayers < 2) {
+          newErrors.maxPlayers = 'Minimum 2 players required';
+        }
+        if (tournamentData.maxPlayers > 128) {
+          newErrors.maxPlayers = 'Maximum 128 players allowed';
+        }
+        break;
+        
+      case 2:
+        if (!tournamentData.startDate) {
+          newErrors.startDate = 'Start date is required';
+        }
+        if (!tournamentData.startTime) {
+          newErrors.startTime = 'Start time is required';
+        }
+        if (!tournamentData.registrationDeadline) {
+          newErrors.registrationDeadline = 'Registration deadline is required';
+        }
+        
+        // Validate dates
+        const startDateTime = new Date(`${tournamentData.startDate}T${tournamentData.startTime}`);
+        const regDeadline = new Date(tournamentData.registrationDeadline);
+        const now = new Date();
+        
+        if (startDateTime <= now) {
+          newErrors.startDate = 'Start date must be in the future';
+        }
+        if (regDeadline >= startDateTime) {
+          newErrors.registrationDeadline = 'Registration must close before tournament starts';
+        }
+        break;
+        
+      case 3:
+        if (!tournamentData.location.trim()) {
+          newErrors.location = 'Location is required';
+        }
+        break;
+        
+      case 4:
+        if (!tournamentData.rules.trim()) {
+          newErrors.rules = 'Tournament rules are required';
+        }
+        break;
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const nextStep = () => {
-    if (currentStep === 1) {
-      // Validate basic info
-      if (!formData.name || !formData.date) {
-        setMessage('Please fill in tournament name and date')
-        return
-      }
-    } else if (currentStep === 2) {
-      // Generate bracket preview
-      generateBracket()
+    if (validateStep(currentStep)) {
+      setCurrentStep(prev => Math.min(prev + 1, steps.length));
     }
-    
-    setCurrentStep(prev => Math.min(prev + 1, 3))
-    setMessage('')
-  }
+  };
 
   const prevStep = () => {
-    setCurrentStep(prev => Math.max(prev - 1, 1))
-    setMessage('')
-  }
+    setCurrentStep(prev => Math.max(prev - 1, 1));
+  };
 
-  if (!isOpen) return null
+  const addPlayer = () => {
+    const newPlayer = {
+      id: Date.now(),
+      name: '',
+      email: '',
+      rank: 'Unranked',
+      seed: tournamentData.players.length + 1
+    };
+    
+    setTournamentData(prev => ({
+      ...prev,
+      players: [...prev.players, newPlayer]
+    }));
+  };
+
+  const removePlayer = (playerId) => {
+    setTournamentData(prev => ({
+      ...prev,
+      players: prev.players.filter(p => p.id !== playerId)
+    }));
+  };
+
+  const updatePlayer = (playerId, field, value) => {
+    setTournamentData(prev => ({
+      ...prev,
+      players: prev.players.map(p => 
+        p.id === playerId ? { ...p, [field]: value } : p
+      )
+    }));
+  };
+
+  const shufflePlayers = () => {
+    setTournamentData(prev => ({
+      ...prev,
+      players: [...prev.players].sort(() => Math.random() - 0.5).map((player, index) => ({
+        ...player,
+        seed: index + 1
+      }))
+    }));
+  };
+
+  const handleFileUpload = (field, event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        handleInputChange(field, e.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const calculatePrizeDistribution = () => {
+    const total = tournamentData.prizePool;
+    if (total <= 0) return [];
+    
+    return [
+      { place: '1st', amount: Math.round(total * 0.5), percentage: 50 },
+      { place: '2nd', amount: Math.round(total * 0.3), percentage: 30 },
+      { place: '3rd', amount: Math.round(total * 0.2), percentage: 20 }
+    ];
+  };
+
+  const handleSubmit = async () => {
+    if (!validateStep(currentStep)) return;
+    
+    try {
+      setLoading(true);
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // In a real app, you would send tournamentData to your API
+      console.log('Creating tournament:', tournamentData);
+      
+      // Call the callback function
+      if (onTournamentCreated) {
+        onTournamentCreated(tournamentData);
+      }
+      
+      // Close modal
+      onClose();
+    } catch (error) {
+      console.error('Error creating tournament:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStepProgress = () => {
+    return (currentStep / steps.length) * 100;
+  };
+
+  if (!isOpen) return null;
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000,
-      padding: '16px'
-    }}>
-      <div className="card" style={{ 
-        maxWidth: '800px', 
-        width: '100%', 
-        maxHeight: '90vh', 
-        overflow: 'auto' 
-      }}>
-        <div className="card-header">
-          <div className="flex justify-between items-center">
-            <h2 className="card-title text-xl">Create Tournament</h2>
-            <button
-              onClick={onClose}
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                padding: '4px'
-              }}
-            >
-              <X style={{ width: '24px', height: '24px', color: '#6b7280' }} />
-            </button>
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content max-w-4xl w-full max-h-[90vh] overflow-auto" onClick={e => e.stopPropagation()}>
+        {/* Modal Header */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Create Tournament</h2>
+            <p className="text-gray-600">Set up your new tournament</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="btn btn-outline btn-sm"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-sm font-medium text-gray-700">
+              Step {currentStep} of {steps.length}
+            </span>
+            <span className="text-sm text-gray-600">
+              {Math.round(getStepProgress())}% Complete
+            </span>
           </div>
           
-          {/* Step indicator */}
-          <div className="flex items-center space-x-4 mt-4">
-            <div className={`flex items-center space-x-2 ${currentStep >= 1 ? 'text-primary' : 'text-secondary'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep >= 1 ? 'bg-primary text-white' : 'bg-gray-200'}`}>
-                1
+          <div className="progress-bar mb-6">
+            <div 
+              className="progress-fill transition-all duration-500"
+              style={{ width: `${getStepProgress()}%` }}
+            ></div>
+          </div>
+
+          {/* Step Navigation */}
+          <div className="flex justify-between">
+            {steps.map((step, index) => (
+              <div
+                key={step.id}
+                className={`flex flex-col items-center cursor-pointer transition ${
+                  currentStep >= step.id
+                    ? 'text-primary-600'
+                    : 'text-gray-400'
+                }`}
+                onClick={() => currentStep > step.id && setCurrentStep(step.id)}
+              >
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 transition ${
+                  currentStep >= step.id
+                    ? 'bg-primary-500 text-white'
+                    : 'bg-gray-200 text-gray-400'
+                }`}>
+                  {currentStep > step.id ? (
+                    <Check size={16} />
+                  ) : (
+                    <step.icon size={16} />
+                  )}
+                </div>
+                <span className="text-xs font-medium text-center">
+                  {step.title}
+                </span>
               </div>
-              <span className="text-sm font-medium">Basic Info</span>
-            </div>
-            <div className="flex-1 h-px bg-gray-200"></div>
-            <div className={`flex items-center space-x-2 ${currentStep >= 2 ? 'text-primary' : 'text-secondary'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep >= 2 ? 'bg-primary text-white' : 'bg-gray-200'}`}>
-                2
-              </div>
-              <span className="text-sm font-medium">Players</span>
-            </div>
-            <div className="flex-1 h-px bg-gray-200"></div>
-            <div className={`flex items-center space-x-2 ${currentStep >= 3 ? 'text-primary' : 'text-secondary'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep >= 3 ? 'bg-primary text-white' : 'bg-gray-200'}`}>
-                3
-              </div>
-              <span className="text-sm font-medium">Review</span>
-            </div>
+            ))}
           </div>
         </div>
 
-        <div className="card-content">
-          <form onSubmit={handleSubmit}>
-            {/* Step 1: Basic Information */}
-            {currentStep === 1 && (
-              <div className="space-y-6">
-                <h3 className="text-lg font-semibold">Tournament Information</h3>
-                
-                {/* Tournament Name */}
-                <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-primary mb-2">
-                    <Trophy style={{ width: '16px', height: '16px', display: 'inline', marginRight: '8px' }} />
-                    Tournament Name
-                  </label>
+        {/* Step Content */}
+        <div className="p-6">
+          {/* Step 1: Basic Information */}
+          {currentStep === 1 && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="form-group">
+                  <label className="form-label">Tournament Name *</label>
                   <input
-                    id="name"
-                    name="name"
                     type="text"
-                    required
-                    value={formData.name}
-                    onChange={handleChange}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      fontSize: '16px',
-                      outline: 'none'
-                    }}
+                    className={`form-input ${errors.name ? 'border-error-500' : ''}`}
                     placeholder="Enter tournament name"
-                    onFocus={(e) => e.target.style.borderColor = '#2563eb'}
-                    onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                    value={tournamentData.name}
+                    onChange={(e) => handleInputChange('name', e.target.value)}
                   />
+                  {errors.name && (
+                    <p className="text-error-500 text-sm mt-1">{errors.name}</p>
+                  )}
                 </div>
 
-                {/* Tournament Date */}
-                <div>
-                  <label htmlFor="date" className="block text-sm font-medium text-primary mb-2">
-                    <Calendar style={{ width: '16px', height: '16px', display: 'inline', marginRight: '8px' }} />
-                    Tournament Date
-                  </label>
-                  <input
-                    id="date"
-                    name="date"
-                    type="date"
-                    required
-                    value={formData.date}
-                    onChange={handleChange}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      fontSize: '16px',
-                      outline: 'none'
-                    }}
-                    onFocus={(e) => e.target.style.borderColor = '#2563eb'}
-                    onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
-                  />
-                </div>
-
-                {/* Description */}
-                <div>
-                  <label htmlFor="description" className="block text-sm font-medium text-primary mb-2">
-                    <FileText style={{ width: '16px', height: '16px', display: 'inline', marginRight: '8px' }} />
-                    Description
-                  </label>
-                  <textarea
-                    id="description"
-                    name="description"
-                    rows="3"
-                    value={formData.description}
-                    onChange={handleChange}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      fontSize: '16px',
-                      outline: 'none',
-                      resize: 'vertical'
-                    }}
-                    placeholder="Brief description of the tournament"
-                    onFocus={(e) => e.target.style.borderColor = '#2563eb'}
-                    onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
-                  />
-                </div>
-
-                {/* Rules */}
-                <div>
-                  <label htmlFor="rules" className="block text-sm font-medium text-primary mb-2">
-                    Rules & Regulations
-                  </label>
-                  <textarea
-                    id="rules"
-                    name="rules"
-                    rows="4"
-                    value={formData.rules}
-                    onChange={handleChange}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      fontSize: '16px',
-                      outline: 'none',
-                      resize: 'vertical'
-                    }}
-                    placeholder="Tournament rules and regulations"
-                    onFocus={(e) => e.target.style.borderColor = '#2563eb'}
-                    onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
-                  />
-                </div>
-
-                {/* Entry Fee */}
-                <div>
-                  <label htmlFor="entry_fee" className="block text-sm font-medium text-primary mb-2">
-                    Entry Fee (optional)
-                  </label>
-                  <input
-                    id="entry_fee"
-                    name="entry_fee"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={formData.entry_fee}
-                    onChange={handleChange}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      fontSize: '16px',
-                      outline: 'none'
-                    }}
-                    placeholder="0.00"
-                    onFocus={(e) => e.target.style.borderColor = '#2563eb'}
-                    onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
-                  />
-                </div>
-
-                {/* Max Players */}
-                <div>
-                  <label htmlFor="max_players" className="block text-sm font-medium text-primary mb-2">
-                    <Users style={{ width: '16px', height: '16px', display: 'inline', marginRight: '8px' }} />
-                    Maximum Players
-                  </label>
+                <div className="form-group">
+                  <label className="form-label">Category</label>
                   <select
-                    id="max_players"
-                    name="max_players"
-                    value={formData.max_players}
-                    onChange={handleChange}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      fontSize: '16px',
-                      outline: 'none',
-                      backgroundColor: 'white'
-                    }}
-                    onFocus={(e) => e.target.style.borderColor = '#2563eb'}
-                    onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                    className="form-select"
+                    value={tournamentData.category}
+                    onChange={(e) => handleInputChange('category', e.target.value)}
                   >
-                    {[4, 8, 16, 32, 64, 128].map(limit => (
-                      <option key={limit} value={limit}>
-                        {limit} players
-                      </option>
+                    {categories.map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
                     ))}
                   </select>
                 </div>
               </div>
-            )}
 
-            {/* Step 2: Players */}
-            {currentStep === 2 && (
-              <div className="space-y-6">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-semibold">Tournament Players</h3>
-                  <div className="flex space-x-2">
+              <div className="form-group">
+                <label className="form-label">Description *</label>
+                <textarea
+                  className={`form-input h-24 resize-none ${errors.description ? 'border-error-500' : ''}`}
+                  placeholder="Describe your tournament..."
+                  value={tournamentData.description}
+                  onChange={(e) => handleInputChange('description', e.target.value)}
+                />
+                {errors.description && (
+                  <p className="text-error-500 text-sm mt-1">{errors.description}</p>
+                )}
+              </div>
+
+              {/* Tournament Format */}
+              <div className="form-group">
+                <label className="form-label">Tournament Format</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {tournamentFormats.map(format => (
+                    <div
+                      key={format.id}
+                      className={`relative p-4 border-2 rounded-lg cursor-pointer transition ${
+                        tournamentData.format === format.id
+                          ? 'border-primary-500 bg-primary-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                      onClick={() => handleInputChange('format', format.id)}
+                    >
+                      {format.recommended && (
+                        <span className="absolute top-2 right-2 bg-success-500 text-white text-xs px-2 py-1 rounded">
+                          Recommended
+                        </span>
+                      )}
+                      <div className="flex items-center gap-3 mb-2">
+                        <format.icon size={20} className="text-primary-500" />
+                        <h3 className="font-semibold">{format.name}</h3>
+                      </div>
+                      <p className="text-sm text-gray-600">{format.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Players and Prize */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="form-group">
+                  <label className="form-label">Max Players *</label>
+                  <input
+                    type="number"
+                    min="2"
+                    max="128"
+                    className={`form-input ${errors.maxPlayers ? 'border-error-500' : ''}`}
+                    value={tournamentData.maxPlayers}
+                    onChange={(e) => handleInputChange('maxPlayers', parseInt(e.target.value))}
+                  />
+                  {errors.maxPlayers && (
+                    <p className="text-error-500 text-sm mt-1">{errors.maxPlayers}</p>
+                  )}
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Entry Fee ($)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    className="form-input"
+                    placeholder="0.00"
+                    value={tournamentData.entryFee}
+                    onChange={(e) => handleInputChange('entryFee', parseFloat(e.target.value) || 0)}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Prize Pool ($)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    className="form-input"
+                    placeholder="0.00"
+                    value={tournamentData.prizePool}
+                    onChange={(e) => handleInputChange('prizePool', parseFloat(e.target.value) || 0)}
+                  />
+                </div>
+              </div>
+
+              {/* Prize Distribution Preview */}
+              {tournamentData.prizePool > 0 && (
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-semibold mb-3">Prize Distribution</h4>
+                  <div className="grid grid-cols-3 gap-4">
+                    {calculatePrizeDistribution().map(prize => (
+                      <div key={prize.place} className="text-center">
+                        <div className="font-semibold text-gray-900">{prize.place}</div>
+                        <div className="text-lg font-bold text-primary-600">${prize.amount}</div>
+                        <div className="text-sm text-gray-600">{prize.percentage}%</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Step 2: Schedule */}
+          {currentStep === 2 && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="form-group">
+                  <label className="form-label">Start Date *</label>
+                  <input
+                    type="date"
+                    className={`form-input ${errors.startDate ? 'border-error-500' : ''}`}
+                    value={tournamentData.startDate}
+                    onChange={(e) => handleInputChange('startDate', e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                  />
+                  {errors.startDate && (
+                    <p className="text-error-500 text-sm mt-1">{errors.startDate}</p>
+                  )}
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Start Time *</label>
+                  <input
+                    type="time"
+                    className={`form-input ${errors.startTime ? 'border-error-500' : ''}`}
+                    value={tournamentData.startTime}
+                    onChange={(e) => handleInputChange('startTime', e.target.value)}
+                  />
+                  {errors.startTime && (
+                    <p className="text-error-500 text-sm mt-1">{errors.startTime}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Registration Deadline *</label>
+                <input
+                  type="datetime-local"
+                  className={`form-input ${errors.registrationDeadline ? 'border-error-500' : ''}`}
+                  value={tournamentData.registrationDeadline}
+                  onChange={(e) => handleInputChange('registrationDeadline', e.target.value)}
+                  min={new Date().toISOString().slice(0, 16)}
+                  max={tournamentData.startDate && tournamentData.startTime 
+                    ? `${tournamentData.startDate}T${tournamentData.startTime}`
+                    : undefined
+                  }
+                />
+                {errors.registrationDeadline && (
+                  <p className="text-error-500 text-sm mt-1">{errors.registrationDeadline}</p>
+                )}
+              </div>
+
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <Info size={20} className="text-blue-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="font-semibold text-blue-900 mb-1">Scheduling Tips</h4>
+                    <ul className="text-sm text-blue-800 space-y-1">
+                      <li>• Allow enough time between registration deadline and start</li>
+                      <li>• Consider time zones if you have international participants</li>
+                      <li>• Single elimination typically takes 3-4 hours for 16 players</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Players */}
+          {currentStep === 3 && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="form-group">
+                  <label className="form-label">Location *</label>
+                  <input
+                    type="text"
+                    className={`form-input ${errors.location ? 'border-error-500' : ''}`}
+                    placeholder="City, State or Online"
+                    value={tournamentData.location}
+                    onChange={(e) => handleInputChange('location', e.target.value)}
+                  />
+                  {errors.location && (
+                    <p className="text-error-500 text-sm mt-1">{errors.location}</p>
+                  )}
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Venue Name</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Convention Center, Gaming Lounge, etc."
+                    value={tournamentData.venue}
+                    onChange={(e) => handleInputChange('venue', e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Registration Settings */}
+              <div className="bg-gray-50 p-6 rounded-lg">
+                <h3 className="font-semibold text-gray-900 mb-4">Registration Settings</h3>
+                
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium text-gray-900">Allow Public Registration</h4>
+                      <p className="text-sm text-gray-600">Players can register themselves</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={tournamentData.allowRegistration}
+                        onChange={(e) => handleInputChange('allowRegistration', e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                    </label>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium text-gray-900">Require Approval</h4>
+                      <p className="text-sm text-gray-600">Manually approve each registration</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={tournamentData.requireApproval}
+                        onChange={(e) => handleInputChange('requireApproval', e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Pre-registered Players */}
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-gray-900">Pre-registered Players</h3>
+                  <div className="flex gap-2">
                     <button
-                      type="button"
                       onClick={shufflePlayers}
                       className="btn btn-outline btn-sm"
+                      disabled={tournamentData.players.length < 2}
                     >
-                      <Shuffle style={{ width: '16px', height: '16px', marginRight: '8px' }} />
+                      <Shuffle size={16} />
                       Shuffle
                     </button>
                     <button
-                      type="button"
                       onClick={addPlayer}
-                      disabled={players.length >= formData.max_players}
                       className="btn btn-primary btn-sm"
                     >
-                      <Plus style={{ width: '16px', height: '16px', marginRight: '8px' }} />
+                      <Plus size={16} />
                       Add Player
                     </button>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {players.map((player, index) => (
-                    <div key={player.id} className="flex items-center space-x-3 p-3 border rounded-lg">
-                      <div className="flex-shrink-0 w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                        <span className="text-sm font-medium text-primary">{index + 1}</span>
-                      </div>
-                      <input
-                        type="text"
-                        value={player.name}
-                        onChange={(e) => handlePlayerNameChange(player.id, e.target.value)}
-                        placeholder={`Player ${index + 1} name`}
-                        style={{
-                          flex: 1,
-                          padding: '8px 12px',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '6px',
-                          fontSize: '14px',
-                          outline: 'none'
-                        }}
-                        onFocus={(e) => e.target.style.borderColor = '#2563eb'}
-                        onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
-                      />
-                      {players.length > 2 && (
-                        <button
-                          type="button"
-                          onClick={() => removePlayer(player.id)}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer',
-                            padding: '4px',
-                            color: '#ef4444'
-                          }}
-                        >
-                          <Trash2 style={{ width: '16px', height: '16px' }} />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-
-                <div className="text-sm text-secondary">
-                  <p>• Add player names to generate the tournament bracket</p>
-                  <p>• Minimum 2 players required, maximum {formData.max_players} players</p>
-                  <p>• Empty player slots will be ignored</p>
-                  <p>• Players will be randomly seeded in the bracket</p>
-                </div>
-              </div>
-            )}
-
-            {/* Step 3: Review & Bracket Preview */}
-            {currentStep === 3 && (
-              <div className="space-y-6">
-                <h3 className="text-lg font-semibold">Review & Bracket Preview</h3>
-                
-                {/* Tournament Summary */}
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h4 className="font-medium mb-3">Tournament Summary</h4>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-secondary">Name:</span>
-                      <span className="ml-2 font-medium">{formData.name}</span>
-                    </div>
-                    <div>
-                      <span className="text-secondary">Date:</span>
-                      <span className="ml-2 font-medium">{new Date(formData.date).toLocaleDateString()}</span>
-                    </div>
-                    <div>
-                      <span className="text-secondary">Players:</span>
-                      <span className="ml-2 font-medium">{players.filter(p => p.name.trim()).length}</span>
-                    </div>
-                    <div>
-                      <span className="text-secondary">Entry Fee:</span>
-                      <span className="ml-2 font-medium">{formData.entry_fee ? `$${formData.entry_fee}` : 'Free'}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Bracket Preview */}
-                {generatedBracket && (
-                  <div className="border rounded-lg p-4">
-                    <h4 className="font-medium mb-3">Bracket Preview</h4>
-                    <div className="space-y-4">
-                      {generatedBracket.rounds.map((round, roundIndex) => (
-                        <div key={roundIndex}>
-                          <h5 className="text-sm font-medium text-secondary mb-2">
-                            {round.roundName} ({round.matches.length} matches)
-                          </h5>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                            {round.matches.map((match, matchIndex) => (
-                              <div key={matchIndex} className="text-sm p-2 bg-gray-50 rounded">
-                                <div className="flex justify-between">
-                                  <span>{match.player1?.name || 'TBD'}</span>
-                                  <span className="text-secondary">vs</span>
-                                  <span>{match.player2?.name || 'TBD'}</span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
+                {tournamentData.players.length > 0 ? (
+                  <div className="space-y-3 max-h-60 overflow-y-auto">
+                    {tournamentData.players.map((player, index) => (
+                      <div key={player.id} className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg">
+                        <div className="flex-shrink-0 w-8 h-8 bg-primary-500 text-white rounded-full flex items-center justify-center font-semibold">
+                          {player.seed}
                         </div>
-                      ))}
-                    </div>
+                        
+                        <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <input
+                            type="text"
+                            placeholder="Player name"
+                            className="form-input"
+                            value={player.name}
+                            onChange={(e) => updatePlayer(player.id, 'name', e.target.value)}
+                          />
+                          <input
+                            type="email"
+                            placeholder="Email (optional)"
+                            className="form-input"
+                            value={player.email}
+                            onChange={(e) => updatePlayer(player.id, 'email', e.target.value)}
+                          />
+                          <select
+                            className="form-select"
+                            value={player.rank}
+                            onChange={(e) => updatePlayer(player.id, 'rank', e.target.value)}
+                          >
+                            <option value="Unranked">Unranked</option>
+                            <option value="Bronze">Bronze</option>
+                            <option value="Silver">Silver</option>
+                            <option value="Gold">Gold</option>
+                            <option value="Platinum">Platinum</option>
+                            <option value="Diamond">Diamond</option>
+                          </select>
+                        </div>
+                        
+                        <button
+                          onClick={() => removePlayer(player.id)}
+                          className="btn btn-outline btn-sm text-error-600 border-error-300 hover:bg-error-50"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                )}
-              </div>
-            )}
-
-            {/* Navigation Buttons */}
-            <div className="flex justify-between items-center mt-8">
-              <div>
-                {currentStep > 1 && (
-                  <button
-                    type="button"
-                    onClick={prevStep}
-                    className="btn btn-outline"
-                  >
-                    Previous
-                  </button>
-                )}
-              </div>
-              
-              <div className="flex space-x-3">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="btn btn-secondary"
-                >
-                  Cancel
-                </button>
-                
-                {currentStep < 3 ? (
-                  <button
-                    type="button"
-                    onClick={nextStep}
-                    className="btn btn-primary"
-                  >
-                    Next
-                  </button>
                 ) : (
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="btn btn-primary"
-                  >
-                    {loading ? 'Creating Tournament...' : 'Create Tournament'}
-                  </button>
+                  <div className="text-center py-8 text-gray-500">
+                    <Users size={48} className="mx-auto mb-4 text-gray-300" />
+                    <p>No players added yet. Add players manually or allow public registration.</p>
+                  </div>
                 )}
               </div>
             </div>
-          </form>
+          )}
 
-          {/* Message */}
-          {message && (
-            <div className={`mt-4 p-3 rounded-lg text-sm ${
-              message.includes('successfully') 
-                ? 'bg-green-50 text-green-600 border border-green-200' 
-                : 'bg-red-50 text-red-600 border border-red-200'
-            }`}>
-              {message}
+          {/* Step 4: Settings */}
+          {currentStep === 4 && (
+            <div className="space-y-6">
+              <div className="form-group">
+                <label className="form-label">Tournament Rules *</label>
+                <textarea
+                  className={`form-input h-32 resize-none ${errors.rules ? 'border-error-500' : ''}`}
+                  placeholder="Describe the rules and regulations for your tournament..."
+                  value={tournamentData.rules}
+                  onChange={(e) => handleInputChange('rules', e.target.value)}
+                />
+                {errors.rules && (
+                  <p className="text-error-500 text-sm mt-1">{errors.rules}</p>
+                )}
+              </div>
+
+              {/* Game Settings */}
+              <div className="bg-gray-50 p-6 rounded-lg">
+                <h3 className="font-semibold text-gray-900 mb-4">Game Settings</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="form-group">
+                    <label className="form-label">Match Duration (minutes)</label>
+                    <input
+                      type="number"
+                      min="5"
+                      max="180"
+                      className="form-input"
+                      value={tournamentData.gameSettings.matchDuration}
+                      onChange={(e) => handleNestedInputChange('gameSettings', 'matchDuration', parseInt(e.target.value))}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Points to Win</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="50"
+                      className="form-input"
+                      value={tournamentData.gameSettings.pointsToWin}
+                      onChange={(e) => handleNestedInputChange('gameSettings', 'pointsToWin', parseInt(e.target.value))}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Time Control</label>
+                    <select
+                      className="form-select"
+                      value={tournamentData.gameSettings.timeControl}
+                      onChange={(e) => handleNestedInputChange('gameSettings', 'timeControl', e.target.value)}
+                    >
+                      <option value="blitz">Blitz (Fast)</option>
+                      <option value="standard">Standard</option>
+                      <option value="extended">Extended (Slow)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Privacy Settings */}
+              <div className="bg-gray-50 p-6 rounded-lg">
+                <h3 className="font-semibold text-gray-900 mb-4">Privacy & Access</h3>
+                
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium text-gray-900">Private Tournament</h4>
+                      <p className="text-sm text-gray-600">Only invited players can join</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={tournamentData.isPrivate}
+                        onChange={(e) => handleInputChange('isPrivate', e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                    </label>
+                  </div>
+
+                  {tournamentData.isPrivate && (
+                    <div className="form-group">
+                      <label className="form-label">Tournament Password</label>
+                      <input
+                        type="password"
+                        className="form-input"
+                        placeholder="Enter password for private tournament"
+                        value={tournamentData.password}
+                        onChange={(e) => handleInputChange('password', e.target.value)}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
         </div>
+
+        {/* Modal Footer */}
+        <div className="flex items-center justify-between p-6 border-t border-gray-200">
+          <div className="flex gap-2">
+            {currentStep > 1 && (
+              <button
+                onClick={prevStep}
+                className="btn btn-outline"
+              >
+                <ArrowLeft size={16} />
+                Previous
+              </button>
+            )}
+          </div>
+          
+          <div className="flex gap-2">
+            <button
+              onClick={onClose}
+              className="btn btn-outline"
+              disabled={loading}
+            >
+              Cancel
+            </button>
+            
+            {currentStep < steps.length ? (
+              <button
+                onClick={nextStep}
+                className="btn btn-primary"
+              >
+                Next
+                <ArrowRight size={16} />
+              </button>
+            ) : (
+              <button
+                onClick={handleSubmit}
+                disabled={loading}
+                className="btn btn-primary"
+              >
+                {loading ? (
+                  <>
+                    <div className="spinner w-4 h-4 border-2"></div>
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Save size={16} />
+                    Create Tournament
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default CreateTournamentModal
-
+export default CreateTournamentModal;

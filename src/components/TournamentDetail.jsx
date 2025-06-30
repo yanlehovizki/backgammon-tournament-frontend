@@ -1,416 +1,612 @@
-import { useState, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
-import { Badge } from './ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
-import { Trophy, Calendar, Users, Play, UserPlus, UserMinus, Target, RefreshCw } from 'lucide-react'
-import { API_ENDPOINTS, API_BASE_URL, apiRequest } from '../config/api'
-import BracketVisualization from './BracketVisualization'
-import MatchResultModal from './MatchResultModal'
-import BracketGenerator from '../utils/bracketGenerator'
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { 
+  ArrowLeft,
+  Edit3,
+  Users,
+  Calendar,
+  MapPin,
+  DollarSign,
+  Trophy,
+  Clock,
+  Settings,
+  Share2,
+  Download,
+  Star,
+  Target,
+  Zap,
+  Award,
+  Eye,
+  UserPlus,
+  Play,
+  Pause,
+  RotateCcw,
+  CheckCircle,
+  AlertCircle,
+  Info
+} from 'lucide-react';
+import EditTournamentModal from './EditTournamentModal';
 
-const TournamentDetail = ({ user }) => {
-  const { id } = useParams()
-  const [tournament, setTournament] = useState(null)
-  const [bracket, setBracket] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [enrolling, setEnrolling] = useState(false)
-  const [starting, setStarting] = useState(false)
-  const [showMatchModal, setShowMatchModal] = useState(false)
-  const [selectedMatch, setSelectedMatch] = useState(null)
+const TournamentDetail = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [tournament, setTournament] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
 
+  // Sample tournament data - replace with your API call
   useEffect(() => {
-    fetchTournamentDetails()
-  }, [id])
-
-  const fetchTournamentDetails = async () => {
-    try {
-      const response = await apiRequest(API_ENDPOINTS.TOURNAMENT_DETAIL(id))
-      if (response.success) {
-        setTournament(response.data.tournament)
+    const fetchTournament = async () => {
+      try {
+        setLoading(true);
         
-        // Load bracket if it exists
-        if (response.data.tournament.bracket) {
-          setBracket(response.data.tournament.bracket)
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching tournament details:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleEnrollment = async (action) => {
-    setEnrolling(true)
-    try {
-      const endpoint = action === 'enroll' 
-        ? API_ENDPOINTS.TOURNAMENT_ENROLL(id)
-        : API_ENDPOINTS.TOURNAMENT_UNENROLL(id)
-      
-      const method = action === 'enroll' ? 'POST' : 'DELETE'
-      
-      const response = await fetch(endpoint, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ player_id: user.player_id }),
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        fetchTournamentDetails() // Refresh tournament data
-      } else {
-        alert(data.error || `Failed to ${action}`)
-      }
-    } catch (error) {
-      alert('Network error. Please try again.')
-    } finally {
-      setEnrolling(false)
-    }
-  }
-
-  const handleStartTournament = async () => {
-    setStarting(true)
-    try {
-      // Generate bracket from enrolled players
-      if (tournament.enrolled_players && tournament.enrolled_players.length >= 2) {
-        const players = tournament.enrolled_players.map(player => ({
-          id: player.player_id,
-          name: player.name
-        }))
+        // Simulate API call
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
-        const generatedBracket = BracketGenerator.generateBracket(players)
-        
-        // Start tournament with bracket
-        const response = await fetch(API_ENDPOINTS.TOURNAMENT_START(id), {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
+        // Sample data - replace with actual API call
+        const sampleTournament = {
+          id: parseInt(id),
+          name: 'Spring Championship 2025',
+          description: 'Annual spring tournament featuring the best players from around the region. This tournament brings together competitive players for an exciting day of matches with substantial prizes.',
+          format: 'single-elimination',
+          status: 'upcoming',
+          startDate: '2025-07-15T10:00:00Z',
+          endDate: '2025-07-15T18:00:00Z',
+          registrationDeadline: '2025-07-10T23:59:59Z',
+          location: 'New York, NY',
+          venue: 'Madison Square Garden',
+          address: '4 Pennsylvania Plaza, New York, NY 10001',
+          maxPlayers: 32,
+          currentPlayers: 24,
+          entryFee: 50,
+          prizePool: 1500,
+          category: 'professional',
+          allowRegistration: true,
+          requireApproval: false,
+          isPrivate: false,
+          rules: `Tournament Rules:
+1. All matches are best of 3 games
+2. Standard time control: 45 minutes per match
+3. Players must arrive 15 minutes before their scheduled match
+4. No coaching during matches
+5. Electronic devices must be turned off
+6. Disputes will be resolved by tournament officials
+7. Unsportsmanlike conduct will result in disqualification
+8. Prize distribution: 1st place 50%, 2nd place 30%, 3rd place 20%`,
+          gameSettings: {
+            matchDuration: 45,
+            pointsToWin: 21,
+            timeControl: 'standard'
           },
-          body: JSON.stringify({
-            bracket: generatedBracket
-          }),
-        })
-
-        const data = await response.json()
-
-        if (response.ok) {
-          fetchTournamentDetails()
-        } else {
-          alert(data.error || 'Failed to start tournament')
-        }
-      } else {
-        alert('At least 2 players must be enrolled to start the tournament')
+          players: [
+            { id: 1, name: 'John Doe', email: 'john@example.com', rank: 'Gold', seed: 1, status: 'confirmed' },
+            { id: 2, name: 'Jane Smith', email: 'jane@example.com', rank: 'Silver', seed: 2, status: 'confirmed' },
+            { id: 3, name: 'Mike Johnson', email: 'mike@example.com', rank: 'Gold', seed: 3, status: 'confirmed' },
+            { id: 4, name: 'Sarah Wilson', email: 'sarah@example.com', rank: 'Bronze', seed: 4, status: 'pending' },
+            { id: 5, name: 'David Brown', email: 'david@example.com', rank: 'Silver', seed: 5, status: 'confirmed' },
+            { id: 6, name: 'Lisa Davis', email: 'lisa@example.com', rank: 'Gold', seed: 6, status: 'confirmed' }
+          ],
+          organizer: 'Tournament Admin',
+          organizerEmail: 'admin@tournament.com',
+          createdAt: '2025-06-01T12:00:00Z',
+          updatedAt: '2025-06-15T14:30:00Z',
+          banner: null,
+          logo: null,
+          matches: [
+            {
+              id: 1,
+              round: 'Round 1',
+              player1: 'John Doe',
+              player2: 'Jane Smith',
+              status: 'scheduled',
+              scheduledTime: '2025-07-15T10:00:00Z',
+              result: null
+            },
+            {
+              id: 2,
+              round: 'Round 1',
+              player1: 'Mike Johnson',
+              player2: 'Sarah Wilson',
+              status: 'scheduled',
+              scheduledTime: '2025-07-15T10:30:00Z',
+              result: null
+            }
+          ]
+        };
+        
+        setTournament(sampleTournament);
+      } catch (error) {
+        console.error('Error fetching tournament:', error);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      alert('Network error. Please try again.')
-    } finally {
-      setStarting(false)
-    }
-  }
+    };
 
-  const handleMatchClick = (match) => {
-    setSelectedMatch(match)
-    setShowMatchModal(true)
-  }
+    fetchTournament();
+  }, [id]);
 
-  const handleMatchResultSubmitted = async (resultData) => {
-    try {
-      // Update the bracket with the new result
-      const updatedBracket = BracketGenerator.updateMatchResult(
-        bracket, 
-        resultData.matchId, 
-        {
-          winnerId: resultData.result.winner_id,
-          score: {
-            player1: resultData.result.score_player1,
-            player2: resultData.result.score_player2
-          }
-        }
-      )
-      
-      setBracket(updatedBracket)
-      
-      // Update tournament in backend
-      await fetch(API_ENDPOINTS.TOURNAMENT_UPDATE_BRACKET(id), {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          bracket: updatedBracket
-        }),
-      })
-      
-      setShowMatchModal(false)
-      setSelectedMatch(null)
-      
-      // Refresh tournament data
-      fetchTournamentDetails()
-    } catch (error) {
-      console.error('Error updating match result:', error)
-      alert('Failed to update match result')
-    }
-  }
+  const handleUpdateTournament = (updatedTournament) => {
+    setTournament(updatedTournament);
+  };
 
   const getStatusBadge = (status) => {
-    const statusConfig = {
-      upcoming: { className: 'badge badge-primary', label: 'Upcoming' },
-      in_progress: { className: 'badge badge-success', label: 'In Progress' },
-      completed: { className: 'badge badge-outline', label: 'Completed' }
-    }
-    
-    const config = statusConfig[status] || statusConfig.upcoming
-    return <span className={config.className}>{config.label}</span>
-  }
+    const badges = {
+      upcoming: { class: 'badge badge-outline', icon: Clock },
+      active: { class: 'badge badge-primary', icon: Play },
+      completed: { class: 'badge badge-success', icon: CheckCircle },
+      cancelled: { class: 'badge badge-error', icon: AlertCircle }
+    };
+    return badges[status] || badges.upcoming;
+  };
 
-  const isEnrolled = tournament?.enrolled_players?.some(p => p.player_id === user.player_id)
-  const canManageTournament = user.role === 'super_user'
+  const getFormatIcon = (format) => {
+    const icons = {
+      'single-elimination': Target,
+      'double-elimination': Zap,
+      'round-robin': Award,
+      'swiss-system': Star
+    };
+    return icons[format] || Target;
+  };
+
+  const getFormatName = (format) => {
+    const names = {
+      'single-elimination': 'Single Elimination',
+      'double-elimination': 'Double Elimination',
+      'round-robin': 'Round Robin',
+      'swiss-system': 'Swiss System'
+    };
+    return names[format] || format;
+  };
+
+  const getRankColor = (rank) => {
+    const colors = {
+      'Bronze': 'text-orange-600 bg-orange-100',
+      'Silver': 'text-gray-600 bg-gray-100',
+      'Gold': 'text-yellow-600 bg-yellow-100',
+      'Platinum': 'text-blue-600 bg-blue-100',
+      'Diamond': 'text-purple-600 bg-purple-100',
+      'Unranked': 'text-gray-500 bg-gray-50'
+    };
+    return colors[rank] || colors.Unranked;
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const formatTime = (dateString) => {
+    return new Date(dateString).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
+  const formatDateTime = (dateString) => {
+    return new Date(dateString).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
+  const calculatePrizeDistribution = () => {
+    if (!tournament?.prizePool || tournament.prizePool <= 0) return [];
+    
+    return [
+      { place: '1st', amount: Math.round(tournament.prizePool * 0.5), percentage: 50 },
+      { place: '2nd', amount: Math.round(tournament.prizePool * 0.3), percentage: 30 },
+      { place: '3rd', amount: Math.round(tournament.prizePool * 0.2), percentage: 20 }
+    ];
+  };
+
+  const isRegistrationOpen = tournament?.status === 'upcoming' && 
+                            tournament?.allowRegistration && 
+                            tournament?.currentPlayers < tournament?.maxPlayers;
+
+  const canEdit = tournament?.status !== 'completed';
 
   if (loading) {
     return (
-      <div className="container">
-        <div className="text-center py-8">
-          <div className="text-lg">Loading tournament details...</div>
+      <div className="container py-8">
+        <div className="flex items-center justify-center py-12">
+          <div className="spinner w-8 h-8 border-4"></div>
+          <span className="ml-3 text-gray-600">Loading tournament...</span>
         </div>
       </div>
-    )
+    );
   }
 
   if (!tournament) {
     return (
-      <div className="container">
-        <div className="text-center py-8">
-          <div className="text-lg">Tournament not found</div>
+      <div className="container py-8">
+        <div className="text-center py-12">
+          <Trophy size={64} className="mx-auto text-gray-300 mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Tournament not found</h2>
+          <p className="text-gray-600 mb-6">The tournament you're looking for doesn't exist or has been removed.</p>
+          <Link to="/tournaments" className="btn btn-primary">
+            <ArrowLeft size={16} />
+            Back to Tournaments
+          </Link>
         </div>
       </div>
-    )
+    );
   }
 
+  const statusBadge = getStatusBadge(tournament.status);
+  const FormatIcon = getFormatIcon(tournament.format);
+  const StatusIcon = statusBadge.icon;
+
   return (
-    <div className="container">
+    <div className="container py-8 animate-fade-in">
       {/* Header */}
-      <div className="flex justify-between items-start mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-primary mb-2">{tournament.name}</h1>
-          <div className="flex items-center space-x-4 text-secondary">
-            <span className="flex items-center space-x-1">
-              <Calendar className="h-4 w-4" />
-              <span>{new Date(tournament.date).toLocaleDateString()}</span>
+      <div className="flex items-center gap-4 mb-6">
+        <button
+          onClick={() => navigate('/tournaments')}
+          className="btn btn-outline"
+        >
+          <ArrowLeft size={16} />
+          Back
+        </button>
+        <div className="flex-1">
+          <div className="flex items-center gap-3 mb-2">
+            <h1 className="text-3xl font-bold text-gray-900">{tournament.name}</h1>
+            <span className={statusBadge.class}>
+              <StatusIcon size={14} />
+              {tournament.status.charAt(0).toUpperCase() + tournament.status.slice(1)}
             </span>
-            <span className="flex items-center space-x-1">
-              <Users className="h-4 w-4" />
-              <span>{tournament.enrollment_count} players</span>
-            </span>
-            {getStatusBadge(tournament.status)}
           </div>
-          {tournament.description && (
-            <p className="text-secondary mt-2 max-w-2xl">{tournament.description}</p>
-          )}
+          <p className="text-gray-600">{tournament.description}</p>
         </div>
-        
-        <div className="flex items-center space-x-2">
-          {tournament.status === 'upcoming' && (
-            <>
-              {isEnrolled ? (
-                <button 
-                  onClick={() => handleEnrollment('unenroll')}
-                  disabled={enrolling}
-                  className="btn btn-outline"
-                >
-                  <UserMinus className="h-4 w-4 mr-2" />
-                  <span>{enrolling ? 'Leaving...' : 'Leave Tournament'}</span>
-                </button>
-              ) : (
-                <button 
-                  onClick={() => handleEnrollment('enroll')}
-                  disabled={enrolling}
-                  className="btn btn-primary"
-                >
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  <span>{enrolling ? 'Joining...' : 'Join Tournament'}</span>
-                </button>
-              )}
-              
-              {canManageTournament && tournament.enrollment_count >= 2 && (
-                <button 
-                  onClick={handleStartTournament}
-                  disabled={starting}
-                  className="btn btn-success"
-                >
-                  <Play className="h-4 w-4 mr-2" />
-                  <span>{starting ? 'Starting...' : 'Start Tournament'}</span>
-                </button>
-              )}
-            </>
-          )}
-          
-          <button 
-            onClick={fetchTournamentDetails}
-            className="btn btn-outline btn-sm"
-          >
-            <RefreshCw className="h-4 w-4" />
+        <div className="flex gap-2">
+          <button className="btn btn-outline">
+            <Share2 size={16} />
+            Share
           </button>
+          {canEdit && (
+            <button
+              onClick={() => setShowEditModal(true)}
+              className="btn btn-outline"
+            >
+              <Edit3 size={16} />
+              Edit
+            </button>
+          )}
+          {isRegistrationOpen && (
+            <button className="btn btn-primary">
+              <UserPlus size={16} />
+              Join Tournament
+            </button>
+          )}
         </div>
       </div>
 
-      <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="players">Players</TabsTrigger>
-          <TabsTrigger value="bracket">Bracket</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Tournament Info */}
-            <div className="lg:col-span-2">
-              <div className="card">
-                <div className="card-header">
-                  <h2 className="card-title">Tournament Information</h2>
-                </div>
-                <div className="card-content">
-                  <div className="space-y-4">
-                    {tournament.rules && (
-                      <div>
-                        <h4 className="font-medium text-primary mb-2">Rules & Regulations</h4>
-                        <p className="text-secondary">{tournament.rules}</p>
-                      </div>
-                    )}
-                    
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-secondary">Tournament Date:</span>
-                        <div className="font-medium">{new Date(tournament.date).toLocaleDateString()}</div>
-                      </div>
-                      <div>
-                        <span className="text-secondary">Max Players:</span>
-                        <div className="font-medium">{tournament.max_players}</div>
-                      </div>
-                      <div>
-                        <span className="text-secondary">Entry Fee:</span>
-                        <div className="font-medium">{tournament.entry_fee ? `$${tournament.entry_fee}` : 'Free'}</div>
-                      </div>
-                      <div>
-                        <span className="text-secondary">Status:</span>
-                        <div className="font-medium">{getStatusBadge(tournament.status)}</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+      {/* Tournament Info Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="card">
+          <div className="card-content">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Format</p>
+                <p className="text-lg font-semibold text-gray-900">{getFormatName(tournament.format)}</p>
               </div>
-            </div>
-
-            {/* Tournament Stats */}
-            <div>
-              <div className="card">
-                <div className="card-header">
-                  <h2 className="card-title">Tournament Stats</h2>
-                </div>
-                <div className="card-content">
-                  <div className="space-y-4">
-                    <div className="stat-item">
-                      <div className="stat-value">{tournament.enrollment_count}</div>
-                      <div className="stat-label">Enrolled Players</div>
-                    </div>
-                    <div className="stat-item">
-                      <div className="stat-value">{tournament.max_players - tournament.enrollment_count}</div>
-                      <div className="stat-label">Spots Remaining</div>
-                    </div>
-                    {bracket && (
-                      <>
-                        <div className="stat-item">
-                          <div className="stat-value">{bracket.totalRounds}</div>
-                          <div className="stat-label">Total Rounds</div>
-                        </div>
-                        <div className="stat-item">
-                          <div className="stat-value">
-                            {bracket.rounds.reduce((total, round) => total + round.matches.length, 0)}
-                          </div>
-                          <div className="stat-label">Total Matches</div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
+              <FormatIcon className="text-primary-500" size={24} />
             </div>
           </div>
-        </TabsContent>
+        </div>
 
-        <TabsContent value="players">
-          <div className="card">
-            <div className="card-header">
-              <h2 className="card-title">Enrolled Players ({tournament.enrollment_count})</h2>
-              <p className="card-description">Players participating in this tournament</p>
+        <div className="card">
+          <div className="card-content">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Players</p>
+                <p className="text-lg font-semibold text-gray-900">
+                  {tournament.currentPlayers}/{tournament.maxPlayers}
+                </p>
+                <div className="progress-bar mt-2">
+                  <div 
+                    className="progress-fill"
+                    style={{ width: `${(tournament.currentPlayers / tournament.maxPlayers) * 100}%` }}
+                  ></div>
+                </div>
+              </div>
+              <Users className="text-blue-500" size={24} />
             </div>
-            <div className="card-content">
-              {tournament.enrolled_players?.length > 0 ? (
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-content">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Prize Pool</p>
+                <p className="text-lg font-semibold text-gray-900">${tournament.prizePool.toLocaleString()}</p>
+                <p className="text-sm text-gray-500">Entry: ${tournament.entryFee}</p>
+              </div>
+              <DollarSign className="text-green-500" size={24} />
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-content">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Start Date</p>
+                <p className="text-lg font-semibold text-gray-900">{formatDate(tournament.startDate)}</p>
+                <p className="text-sm text-gray-500">{formatTime(tournament.startDate)}</p>
+              </div>
+              <Calendar className="text-purple-500" size={24} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="card mb-8">
+        <div className="border-b border-gray-200">
+          <nav className="flex space-x-8 px-6">
+            {[
+              { id: 'overview', label: 'Overview', icon: Eye },
+              { id: 'players', label: 'Players', icon: Users },
+              { id: 'schedule', label: 'Schedule', icon: Calendar },
+              { id: 'rules', label: 'Rules', icon: Settings }
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm transition ${
+                  activeTab === tab.id
+                    ? 'border-primary-500 text-primary-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <tab.icon size={16} />
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        <div className="p-6">
+          {/* Overview Tab */}
+          {activeTab === 'overview' && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Tournament Details */}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Tournament Details</h3>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <MapPin size={16} className="text-gray-400" />
+                      <div>
+                        <p className="font-medium">{tournament.location}</p>
+                        {tournament.venue && <p className="text-sm text-gray-600">{tournament.venue}</p>}
+                        {tournament.address && <p className="text-sm text-gray-500">{tournament.address}</p>}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Calendar size={16} className="text-gray-400" />
+                      <div>
+                        <p className="font-medium">Start: {formatDateTime(tournament.startDate)}</p>
+                        {tournament.endDate && (
+                          <p className="text-sm text-gray-600">End: {formatDateTime(tournament.endDate)}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Clock size={16} className="text-gray-400" />
+                      <div>
+                        <p className="font-medium">Registration Deadline</p>
+                        <p className="text-sm text-gray-600">{formatDateTime(tournament.registrationDeadline)}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Trophy size={16} className="text-gray-400" />
+                      <div>
+                        <p className="font-medium">Organizer</p>
+                        <p className="text-sm text-gray-600">{tournament.organizer}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Prize Distribution */}
+                {tournament.prizePool > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Prize Distribution</h3>
+                    <div className="space-y-3">
+                      {calculatePrizeDistribution().map((prize, index) => (
+                        <div key={prize.place} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                              index === 0 ? 'bg-yellow-500 text-white' :
+                              index === 1 ? 'bg-gray-400 text-white' :
+                              'bg-orange-500 text-white'
+                            }`}>
+                              {index + 1}
+                            </div>
+                            <span className="font-medium">{prize.place} Place</span>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-bold text-lg">${prize.amount}</p>
+                            <p className="text-sm text-gray-600">{prize.percentage}%</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Game Settings */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Game Settings</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600">Match Duration</p>
+                    <p className="text-lg font-semibold">{tournament.gameSettings.matchDuration} minutes</p>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600">Points to Win</p>
+                    <p className="text-lg font-semibold">{tournament.gameSettings.pointsToWin}</p>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600">Time Control</p>
+                    <p className="text-lg font-semibold capitalize">{tournament.gameSettings.timeControl}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Players Tab */}
+          {activeTab === 'players' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Registered Players ({tournament.players.length}/{tournament.maxPlayers})
+                </h3>
+                {isRegistrationOpen && (
+                  <button className="btn btn-primary">
+                    <UserPlus size={16} />
+                    Join Tournament
+                  </button>
+                )}
+              </div>
+
+              {tournament.players.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {tournament.enrolled_players.map((player) => (
-                    <div key={player.player_id} className="player-card">
-                      <div className="player-avatar">
-                        <span className="player-initial">
-                          {player.name.charAt(0).toUpperCase()}
+                  {tournament.players.map((player, index) => (
+                    <div key={player.id} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-primary-500 text-white rounded-full flex items-center justify-center font-bold">
+                            {player.seed}
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-900">{player.name}</h4>
+                            <p className="text-sm text-gray-600">{player.email}</p>
+                          </div>
+                        </div>
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${getRankColor(player.rank)}`}>
+                          {player.rank}
                         </span>
                       </div>
-                      <div className="player-info">
-                        <div className="player-name">{player.name}</div>
-                        <div className="player-meta">
-                          Joined {new Date(player.enrolled_at).toLocaleDateString()}
-                        </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Seed #{player.seed}</span>
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          player.status === 'confirmed' 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {player.status}
+                        </span>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="empty-state">
-                  No players enrolled yet.
+                <div className="text-center py-8">
+                  <Users size={48} className="mx-auto text-gray-300 mb-4" />
+                  <h4 className="text-lg font-semibold text-gray-900 mb-2">No players registered yet</h4>
+                  <p className="text-gray-600">Be the first to join this tournament!</p>
                 </div>
               )}
             </div>
-          </div>
-        </TabsContent>
+          )}
 
-        <TabsContent value="bracket">
-          <div className="card">
-            <div className="card-header">
-              <h2 className="card-title">Tournament Bracket</h2>
-              <p className="card-description">
-                {bracket 
-                  ? 'Tournament bracket and match progression' 
-                  : 'Bracket will be generated when tournament starts'
-                }
-              </p>
+          {/* Schedule Tab */}
+          {activeTab === 'schedule' && (
+            <div className="space-y-6">
+              <h3 className="text-lg font-semibold text-gray-900">Tournament Schedule</h3>
+              
+              {tournament.matches && tournament.matches.length > 0 ? (
+                <div className="space-y-4">
+                  {tournament.matches.map((match) => (
+                    <div key={match.id} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-semibold text-gray-900">{match.round}</h4>
+                          <p className="text-gray-600">{match.player1} vs {match.player2}</p>
+                          <p className="text-sm text-gray-500">
+                            {formatDateTime(match.scheduledTime)}
+                          </p>
+                        </div>
+                        <span className={`px-3 py-1 rounded text-sm font-medium ${
+                          match.status === 'completed' 
+                            ? 'bg-green-100 text-green-800'
+                            : match.status === 'active'
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {match.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Calendar size={48} className="mx-auto text-gray-300 mb-4" />
+                  <h4 className="text-lg font-semibold text-gray-900 mb-2">Schedule not available</h4>
+                  <p className="text-gray-600">
+                    {tournament.status === 'upcoming' 
+                      ? 'The tournament schedule will be generated once registration closes.'
+                      : 'No matches scheduled for this tournament.'
+                    }
+                  </p>
+                </div>
+              )}
             </div>
-            <div className="card-content">
-              <BracketVisualization
-                bracket={bracket}
-                onMatchClick={handleMatchClick}
-                canEditResults={canManageTournament && tournament.status === 'in_progress'}
-                highlightPlayer={isEnrolled ? { id: user.player_id, name: user.name } : null}
-              />
-            </div>
-          </div>
-        </TabsContent>
-      </Tabs>
+          )}
 
-      {/* Match Result Modal */}
-      <MatchResultModal
-        isOpen={showMatchModal}
-        onClose={() => {
-          setShowMatchModal(false)
-          setSelectedMatch(null)
-        }}
-        match={selectedMatch}
-        onResultSubmitted={handleMatchResultSubmitted}
+          {/* Rules Tab */}
+          {activeTab === 'rules' && (
+            <div className="space-y-6">
+              <h3 className="text-lg font-semibold text-gray-900">Tournament Rules</h3>
+              
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <Info size={20} className="text-blue-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="font-semibold text-blue-900 mb-1">Important Information</h4>
+                    <p className="text-sm text-blue-800">
+                      Please read all rules carefully before participating. Violation of any rule may result in disqualification.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="prose max-w-none">
+                <pre className="whitespace-pre-wrap text-gray-700 font-sans leading-relaxed">
+                  {tournament.rules}
+                </pre>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Edit Tournament Modal */}
+      <EditTournamentModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
         tournament={tournament}
+        onTournamentUpdated={handleUpdateTournament}
       />
     </div>
-  )
-}
+  );
+};
 
-export default TournamentDetail
-
+export default TournamentDetail;
