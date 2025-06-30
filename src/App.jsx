@@ -10,12 +10,12 @@ import Login from './components/Login'
 const App = () => {
   return (
     <Router>
-      <div className="min-h-screen bg-gray-50">
-        {/* Only the beautiful Navbar - no duplicate navigation */}
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+        {/* ONLY the beautiful Navbar - NO other navigation */}
         <Navbar />
         
-        {/* Main content area */}
-        <main>
+        {/* Main content with proper spacing */}
+        <main className="pt-20">
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/dashboard" element={<Dashboard />} />

@@ -24,7 +24,8 @@ const Dashboard = () => {
           maxPlayers: 16,
           prizePool: 400,
           startDate: '2025-07-15',
-          format: 'single-elimination'
+          format: 'single-elimination',
+          icon: '🏆'
         },
         {
           id: 2,
@@ -34,7 +35,8 @@ const Dashboard = () => {
           maxPlayers: 12,
           prizePool: 150,
           startDate: '2025-07-20',
-          format: 'round-robin'
+          format: 'round-robin',
+          icon: '⚡'
         },
         {
           id: 3,
@@ -44,7 +46,8 @@ const Dashboard = () => {
           maxPlayers: 32,
           prizePool: 1000,
           startDate: '2025-06-28',
-          format: 'double-elimination'
+          format: 'double-elimination',
+          icon: '👑'
         }
       ]
 
@@ -64,32 +67,29 @@ const Dashboard = () => {
       id: tournaments.length + 1,
       ...tournamentData,
       participants: 0,
-      status: 'upcoming'
+      status: 'upcoming',
+      icon: '🎯'
     }
     setTournaments(prev => [newTournament, ...prev])
     setIsCreateModalOpen(false)
   }
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'upcoming': return 'text-blue-600 bg-blue-50'
-      case 'active': return 'text-green-600 bg-green-50'
-      case 'completed': return 'text-gray-600 bg-gray-50'
-      default: return 'text-gray-600 bg-gray-50'
+  const getStatusBadge = (status) => {
+    const badges = {
+      upcoming: { color: 'bg-blue-100 text-blue-800', text: 'UPCOMING' },
+      active: { color: 'bg-green-100 text-green-800', text: 'ACTIVE' },
+      completed: { color: 'bg-gray-100 text-gray-800', text: 'COMPLETED' }
     }
+    return badges[status] || badges.upcoming
   }
 
   if (loading) {
     return (
-      <div className="page-wrapper">
-        <div className="main-content">
-          <div className="container">
-            <div className="flex items-center justify-center py-20">
-              <div className="text-center">
-                <div className="loading-spinner mx-auto mb-4"></div>
-                <p className="text-gray-600">Loading dashboard...</p>
-              </div>
-            </div>
+      <div className="container mx-auto px-6 py-8">
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading dashboard...</p>
           </div>
         </div>
       </div>
@@ -97,126 +97,156 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="page-wrapper">
-      <div className="main-content">
-        <div className="container">
-          {/* NO NAVIGATION HERE - Only content */}
-          
-          {/* Welcome Section */}
-          <div className="flex justify-between items-center mb-8 animate-fade-in">
+    <div className="container mx-auto px-6 py-8">
+      {/* NO NAVIGATION HERE - REMOVED COMPLETELY */}
+      
+      {/* Welcome Section */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
+        <div className="animate-fade-in">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+            Welcome back, Player! 👋
+          </h1>
+          <p className="text-gray-600 text-lg">Ready to dominate the backgammon world?</p>
+        </div>
+        <button
+          onClick={() => setIsCreateModalOpen(true)}
+          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center gap-2"
+        >
+          <span className="text-xl">✨</span>
+          <span>Create Tournament</span>
+        </button>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+          <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                Welcome back, Player! 👋
-              </h1>
-              <p className="text-gray-600">Ready to dominate the backgammon world?</p>
+              <p className="text-gray-500 text-sm font-medium">Total Tournaments</p>
+              <p className="text-3xl font-bold text-gray-900 mt-1">{stats.totalTournaments}</p>
+            </div>
+            <div className="bg-blue-100 p-3 rounded-xl">
+              <span className="text-2xl">🏆</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-500 text-sm font-medium">Active Tournaments</p>
+              <p className="text-3xl font-bold text-gray-900 mt-1">{stats.activeTournaments}</p>
+            </div>
+            <div className="bg-green-100 p-3 rounded-xl">
+              <span className="text-2xl">⚡</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 animate-fade-in" style={{ animationDelay: '0.3s' }}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-500 text-sm font-medium">Total Players</p>
+              <p className="text-3xl font-bold text-gray-900 mt-1">{stats.totalPlayers}</p>
+            </div>
+            <div className="bg-purple-100 p-3 rounded-xl">
+              <span className="text-2xl">👥</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 animate-fade-in" style={{ animationDelay: '0.4s' }}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-500 text-sm font-medium">Total Prize Pool</p>
+              <p className="text-3xl font-bold text-gray-900 mt-1">${stats.totalPrizePool}</p>
+            </div>
+            <div className="bg-orange-100 p-3 rounded-xl">
+              <span className="text-2xl">💰</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Beautiful Recent Tournaments */}
+      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 animate-fade-in" style={{ animationDelay: '0.5s' }}>
+        <div className="p-6 border-b border-gray-100">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-1">Recent Tournaments</h2>
+              <p className="text-gray-600">Your latest tournament activity</p>
             </div>
             <button
               onClick={() => setIsCreateModalOpen(true)}
-              className="btn btn-primary btn-lg"
+              className="bg-blue-50 hover:bg-blue-100 text-blue-600 px-4 py-2 rounded-lg font-medium transition-all duration-300 flex items-center gap-2 border border-blue-200"
             >
-              <span>✨</span>
-              <span>Create Tournament</span>
+              <span>➕</span>
+              <span>New Tournament</span>
             </button>
           </div>
+        </div>
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div className="stat-card animate-fade-in" style={{ animationDelay: '0.1s' }}>
-              <div className="stat-icon bg-blue-500">🏆</div>
-              <div className="stat-content">
-                <div className="stat-number">{stats.totalTournaments}</div>
-                <div className="stat-label">Total Tournaments</div>
-              </div>
-            </div>
-
-            <div className="stat-card animate-fade-in" style={{ animationDelay: '0.2s' }}>
-              <div className="stat-icon bg-green-500">⚡</div>
-              <div className="stat-content">
-                <div className="stat-number">{stats.activeTournaments}</div>
-                <div className="stat-label">Active Tournaments</div>
-              </div>
-            </div>
-
-            <div className="stat-card animate-fade-in" style={{ animationDelay: '0.3s' }}>
-              <div className="stat-icon bg-purple-500">👥</div>
-              <div className="stat-content">
-                <div className="stat-number">{stats.totalPlayers}</div>
-                <div className="stat-label">Total Players</div>
-              </div>
-            </div>
-
-            <div className="stat-card animate-fade-in" style={{ animationDelay: '0.4s' }}>
-              <div className="stat-icon bg-orange-500">💰</div>
-              <div className="stat-content">
-                <div className="stat-number">${stats.totalPrizePool}</div>
-                <div className="stat-label">Total Prize Pool</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Recent Tournaments */}
-          <div className="card animate-fade-in" style={{ animationDelay: '0.5s' }}>
-            <div className="card-header">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h2 className="card-title">Recent Tournaments</h2>
-                  <p className="card-description">Your latest tournament activity</p>
-                </div>
-                <button
-                  onClick={() => setIsCreateModalOpen(true)}
-                  className="btn btn-outline btn-sm"
-                >
-                  <span>➕</span>
-                  <span>New Tournament</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="card-content">
-              <div className="space-y-4">
-                {tournaments.slice(0, 5).map((tournament) => (
-                  <div key={tournament.id} className="tournament-card">
-                    <div className="flex items-center gap-4">
-                      <div className="tournament-icon">
-                        🏆
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900">{tournament.name}</h3>
-                        <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
-                          <span>{tournament.participants}/{tournament.maxPlayers} players</span>
-                          <span>${tournament.prizePool} prize pool</span>
-                          <span>{tournament.format.replace('-', ' ')}</span>
+        <div className="p-6">
+          {tournaments.length > 0 ? (
+            <div className="space-y-4">
+              {tournaments.slice(0, 5).map((tournament, index) => {
+                const badge = getStatusBadge(tournament.status)
+                return (
+                  <div 
+                    key={tournament.id} 
+                    className="bg-gray-50 hover:bg-gray-100 rounded-xl p-4 transition-all duration-300 border border-gray-200 hover:border-blue-300 hover:shadow-md"
+                    style={{ animationDelay: `${0.6 + index * 0.1}s` }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-200">
+                          <span className="text-2xl">{tournament.icon}</span>
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-gray-900 text-lg mb-1">{tournament.name}</h3>
+                          <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                            <span className="flex items-center gap-1">
+                              <span>👥</span>
+                              {tournament.participants}/{tournament.maxPlayers} players
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <span>💰</span>
+                              ${tournament.prizePool} prize pool
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <span>🎯</span>
+                              {tournament.format.replace('-', ' ')}
+                            </span>
+                          </div>
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className={`badge ${getStatusColor(tournament.status)}`}>
-                          {tournament.status.charAt(0).toUpperCase() + tournament.status.slice(1)}
+                        <div className={`px-3 py-1 rounded-full text-xs font-semibold ${badge.color} mb-2`}>
+                          {badge.text}
                         </div>
-                        <div className="text-sm text-gray-500 mt-1">
+                        <div className="text-sm text-gray-500">
                           {new Date(tournament.startDate).toLocaleDateString()}
                         </div>
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
-
-              {tournaments.length === 0 && (
-                <div className="empty-state">
-                  <div className="text-6xl mb-4">🏆</div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">No tournaments yet</h3>
-                  <p className="text-gray-600 mb-6">Create your first tournament to get started!</p>
-                  <button
-                    onClick={() => setIsCreateModalOpen(true)}
-                    className="btn btn-primary"
-                  >
-                    <span>✨</span>
-                    <span>Create Your First Tournament</span>
-                  </button>
-                </div>
-              )}
+                )
+              })}
             </div>
-          </div>
+          ) : (
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">🏆</div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">No tournaments yet</h3>
+              <p className="text-gray-600 mb-6">Create your first tournament to get started!</p>
+              <button
+                onClick={() => setIsCreateModalOpen(true)}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center gap-2 mx-auto"
+              >
+                <span>✨</span>
+                <span>Create Your First Tournament</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
