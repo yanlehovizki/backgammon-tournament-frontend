@@ -1,41 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  X,
-  Plus,
-  Minus,
-  Users,
-  Trophy,
-  Calendar,
-  MapPin,
-  DollarSign,
-  Clock,
-  Settings,
-  Save,
-  Upload,
-  Shuffle,
-  Check,
-  AlertCircle,
-  Info,
-  Star,
-  Target,
-  Zap,
-  Award,
-  FileText,
-  Image as ImageIcon,
-  ArrowRight,
-  ArrowLeft
-} from 'lucide-react';
+import { X, Plus, Minus, Shuffle, Calendar, Users, Trophy, Settings, MapPin, DollarSign, Clock, Info } from 'lucide-react';
 
 const CreateTournamentModal = ({ isOpen, onClose, onTournamentCreated }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState({});
-  
-  const [tournamentData, setTournamentData] = useState({
-    // Basic Information
+  const [formData, setFormData] = useState({
+    // Basic Info
     name: '',
     description: '',
     format: 'single-elimination',
+    category: 'amateur',
     maxPlayers: 16,
     entryFee: 0,
     prizePool: 0,
@@ -51,86 +25,185 @@ const CreateTournamentModal = ({ isOpen, onClose, onTournamentCreated }) => {
     location: '',
     venue: '',
     address: '',
+    isOnline: false,
     
-    // Rules & Settings
+    // Settings
+    allowRegistration: true,
+    requireApproval: false,
+    isPrivate: false,
+    password: '',
     rules: '',
     gameSettings: {
-      matchDuration: 30,
-      pointsToWin: 15,
+      matchDuration: 45,
+      pointsToWin: 21,
       timeControl: 'standard'
     },
     
     // Players
-    players: [],
-    allowRegistration: true,
-    requireApproval: false,
-    
-    // Media
-    banner: null,
-    logo: null,
-    
-    // Advanced
-    isPrivate: false,
-    password: '',
-    category: 'general'
+    players: []
   });
 
-  const steps = [
-    { id: 1, title: 'Basic Info', icon: FileText },
-    { id: 2, title: 'Schedule', icon: Calendar },
-    { id: 3, title: 'Players', icon: Users },
-    { id: 4, title: 'Settings', icon: Settings }
-  ];
+  const [errors, setErrors] = useState({});
 
-  const tournamentFormats = [
-    {
-      id: 'single-elimination',
-      name: 'Single Elimination',
-      description: 'Players are eliminated after one loss',
-      icon: Target,
-      recommended: true
-    },
-    {
-      id: 'double-elimination',
-      name: 'Double Elimination',
-      description: 'Players get a second chance in losers bracket',
-      icon: Zap,
-      recommended: false
-    },
-    {
-      id: 'round-robin',
-      name: 'Round Robin',
-      description: 'Every player plays every other player',
-      icon: Award,
-      recommended: false
-    },
-    {
-      id: 'swiss-system',
-      name: 'Swiss System',
-      description: 'Players paired based on performance',
-      icon: Star,
-      recommended: false
+  // Don't render if not open
+  if (!isOpen) return null;
+
+  const totalSteps = 4;
+
+  const validateStep = (step) => {
+    const newErrors = {};
+
+    switch (step) {
+      case 1: // Basic Info
+        if (!formData.name.trim()) newErrors.name = 'Tournament name is required';
+        if (!formData.description.trim()) newErrors.description = 'Description is required';
+        if (formData.maxPlayers < 2) newErrors.maxPlayers = 'Must have at least 2 players';
+        if (formData.maxPlayers > 128) newErrors.maxPlayers = 'Maximum 128 players allowed';
+        if (formData.entryFee < 0) newErrors.entryFee = 'Entry fee cannot be negative';
+        if (formData.prizePool < 0) newErrors.prizePool = 'Prize pool cannot be negative';
+        break;
+      
+      case 2: // Schedule
+        if (!formData.startDate) newErrors.startDate = 'Start date is required';
+        if (!formData.startTime) newErrors.startTime = 'Start time is required';
+        if (!formData.registrationDeadline) newErrors.registrationDeadline = 'Registration deadline is required';
+        
+        // Validate dates
+        const startDateTime = new Date(`${formData.startDate}T${formData.startTime}`);
+        const regDeadline = new Date(formData.registrationDeadline);
+        const now = new Date();
+        
+        if (startDateTime <= now) newErrors.startDate = 'Start date must be in the future';
+        if (regDeadline <= now) newErrors.registrationDeadline = 'Registration deadline must be in the future';
+        if (regDeadline >= startDateTime) newErrors.registrationDeadline = 'Registration must close before tournament starts';
+        break;
+      
+      case 3: // Location
+        if (!formData.isOnline && !formData.location.trim()) {
+          newErrors.location = 'Location is required for in-person tournaments';
+        }
+        break;
+      
+      case 4: // Settings & Review
+        if (formData.isPrivate && !formData.password.trim()) {
+          newErrors.password = 'Password is required for private tournaments';
+        }
+        break;
     }
-  ];
 
-  const categories = [
-    { id: 'general', name: 'General Tournament' },
-    { id: 'beginner', name: 'Beginner Friendly' },
-    { id: 'intermediate', name: 'Intermediate Level' },
-    { id: 'advanced', name: 'Advanced Players' },
-    { id: 'professional', name: 'Professional League' },
-    { id: 'casual', name: 'Casual Play' }
-  ];
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
-  // Reset form when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      setCurrentStep(1);
-      setErrors({});
-      setTournamentData({
+  const handleNext = () => {
+    if (validateStep(currentStep)) {
+      setCurrentStep(prev => Math.min(prev + 1, totalSteps));
+    }
+  };
+
+  const handlePrevious = () => {
+    setCurrentStep(prev => Math.max(prev - 1, 1));
+  };
+
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors(prev => ({
+        ...prev,
+        [field]: ''
+      }));
+    }
+  };
+
+  const handleGameSettingChange = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      gameSettings: {
+        ...prev.gameSettings,
+        [field]: value
+      }
+    }));
+  };
+
+  const addPlayer = () => {
+    const newPlayer = {
+      id: Date.now(),
+      name: '',
+      email: '',
+      rank: 'Unranked',
+      seed: formData.players.length + 1
+    };
+    
+    setFormData(prev => ({
+      ...prev,
+      players: [...prev.players, newPlayer]
+    }));
+  };
+
+  const removePlayer = (playerId) => {
+    setFormData(prev => ({
+      ...prev,
+      players: prev.players.filter(p => p.id !== playerId).map((p, index) => ({
+        ...p,
+        seed: index + 1
+      }))
+    }));
+  };
+
+  const updatePlayer = (playerId, field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      players: prev.players.map(p => 
+        p.id === playerId ? { ...p, [field]: value } : p
+      )
+    }));
+  };
+
+  const shufflePlayers = () => {
+    setFormData(prev => ({
+      ...prev,
+      players: [...prev.players].sort(() => Math.random() - 0.5).map((p, index) => ({
+        ...p,
+        seed: index + 1
+      }))
+    }));
+  };
+
+  const handleSubmit = async () => {
+    if (!validateStep(4)) return;
+
+    setLoading(true);
+    
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Create tournament object
+      const tournament = {
+        ...formData,
+        id: Date.now(),
+        status: 'upcoming',
+        currentPlayers: formData.players.length,
+        organizer: 'Current User', // Replace with actual user
+        createdAt: new Date().toISOString()
+      };
+
+      console.log('Tournament created:', tournament);
+      
+      // Call the callback
+      onTournamentCreated(tournament);
+      
+      // Reset form
+      setFormData({
         name: '',
         description: '',
         format: 'single-elimination',
+        category: 'amateur',
         maxPlayers: 16,
         entryFee: 0,
         prizePool: 0,
@@ -142,201 +215,23 @@ const CreateTournamentModal = ({ isOpen, onClose, onTournamentCreated }) => {
         location: '',
         venue: '',
         address: '',
-        rules: '',
-        gameSettings: {
-          matchDuration: 30,
-          pointsToWin: 15,
-          timeControl: 'standard'
-        },
-        players: [],
+        isOnline: false,
         allowRegistration: true,
         requireApproval: false,
-        banner: null,
-        logo: null,
         isPrivate: false,
         password: '',
-        category: 'general'
+        rules: '',
+        gameSettings: {
+          matchDuration: 45,
+          pointsToWin: 21,
+          timeControl: 'standard'
+        },
+        players: []
       });
-    }
-  }, [isOpen]);
-
-  const handleInputChange = (field, value) => {
-    setTournamentData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-    
-    // Clear error for this field
-    if (errors[field]) {
-      setErrors(prev => ({
-        ...prev,
-        [field]: null
-      }));
-    }
-  };
-
-  const handleNestedInputChange = (parent, field, value) => {
-    setTournamentData(prev => ({
-      ...prev,
-      [parent]: {
-        ...prev[parent],
-        [field]: value
-      }
-    }));
-  };
-
-  const validateStep = (step) => {
-    const newErrors = {};
-    
-    switch (step) {
-      case 1:
-        if (!tournamentData.name.trim()) {
-          newErrors.name = 'Tournament name is required';
-        }
-        if (!tournamentData.description.trim()) {
-          newErrors.description = 'Description is required';
-        }
-        if (tournamentData.maxPlayers < 2) {
-          newErrors.maxPlayers = 'Minimum 2 players required';
-        }
-        if (tournamentData.maxPlayers > 128) {
-          newErrors.maxPlayers = 'Maximum 128 players allowed';
-        }
-        break;
-        
-      case 2:
-        if (!tournamentData.startDate) {
-          newErrors.startDate = 'Start date is required';
-        }
-        if (!tournamentData.startTime) {
-          newErrors.startTime = 'Start time is required';
-        }
-        if (!tournamentData.registrationDeadline) {
-          newErrors.registrationDeadline = 'Registration deadline is required';
-        }
-        
-        // Validate dates
-        const startDateTime = new Date(`${tournamentData.startDate}T${tournamentData.startTime}`);
-        const regDeadline = new Date(tournamentData.registrationDeadline);
-        const now = new Date();
-        
-        if (startDateTime <= now) {
-          newErrors.startDate = 'Start date must be in the future';
-        }
-        if (regDeadline >= startDateTime) {
-          newErrors.registrationDeadline = 'Registration must close before tournament starts';
-        }
-        break;
-        
-      case 3:
-        if (!tournamentData.location.trim()) {
-          newErrors.location = 'Location is required';
-        }
-        break;
-        
-      case 4:
-        if (!tournamentData.rules.trim()) {
-          newErrors.rules = 'Tournament rules are required';
-        }
-        break;
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const nextStep = () => {
-    if (validateStep(currentStep)) {
-      setCurrentStep(prev => Math.min(prev + 1, steps.length));
-    }
-  };
-
-  const prevStep = () => {
-    setCurrentStep(prev => Math.max(prev - 1, 1));
-  };
-
-  const addPlayer = () => {
-    const newPlayer = {
-      id: Date.now(),
-      name: '',
-      email: '',
-      rank: 'Unranked',
-      seed: tournamentData.players.length + 1
-    };
-    
-    setTournamentData(prev => ({
-      ...prev,
-      players: [...prev.players, newPlayer]
-    }));
-  };
-
-  const removePlayer = (playerId) => {
-    setTournamentData(prev => ({
-      ...prev,
-      players: prev.players.filter(p => p.id !== playerId)
-    }));
-  };
-
-  const updatePlayer = (playerId, field, value) => {
-    setTournamentData(prev => ({
-      ...prev,
-      players: prev.players.map(p => 
-        p.id === playerId ? { ...p, [field]: value } : p
-      )
-    }));
-  };
-
-  const shufflePlayers = () => {
-    setTournamentData(prev => ({
-      ...prev,
-      players: [...prev.players].sort(() => Math.random() - 0.5).map((player, index) => ({
-        ...player,
-        seed: index + 1
-      }))
-    }));
-  };
-
-  const handleFileUpload = (field, event) => {
-    const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        handleInputChange(field, e.target.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const calculatePrizeDistribution = () => {
-    const total = tournamentData.prizePool;
-    if (total <= 0) return [];
-    
-    return [
-      { place: '1st', amount: Math.round(total * 0.5), percentage: 50 },
-      { place: '2nd', amount: Math.round(total * 0.3), percentage: 30 },
-      { place: '3rd', amount: Math.round(total * 0.2), percentage: 20 }
-    ];
-  };
-
-  const handleSubmit = async () => {
-    if (!validateStep(currentStep)) return;
-    
-    try {
-      setLoading(true);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      setCurrentStep(1);
+      setErrors({});
       
-      // In a real app, you would send tournamentData to your API
-      console.log('Creating tournament:', tournamentData);
-      
-      // Call the callback function
-      if (onTournamentCreated) {
-        onTournamentCreated(tournamentData);
-      }
-      
-      // Close modal
-      onClose();
     } catch (error) {
       console.error('Error creating tournament:', error);
     } finally {
@@ -344,399 +239,371 @@ const CreateTournamentModal = ({ isOpen, onClose, onTournamentCreated }) => {
     }
   };
 
-  const getStepProgress = () => {
-    return (currentStep / steps.length) * 100;
+  const getStepTitle = (step) => {
+    const titles = {
+      1: 'Basic Information',
+      2: 'Schedule',
+      3: 'Location & Players',
+      4: 'Settings & Review'
+    };
+    return titles[step];
   };
 
-  if (!isOpen) return null;
+  const formatOptions = [
+    { value: 'single-elimination', label: 'Single Elimination', description: 'One loss and you\'re out' },
+    { value: 'double-elimination', label: 'Double Elimination', description: 'Two losses and you\'re out' },
+    { value: 'round-robin', label: 'Round Robin', description: 'Everyone plays everyone' },
+    { value: 'swiss-system', label: 'Swiss System', description: 'Paired by performance' }
+  ];
+
+  const categoryOptions = [
+    { value: 'beginner', label: 'Beginner', description: 'New to competitive play' },
+    { value: 'amateur', label: 'Amateur', description: 'Casual competitive play' },
+    { value: 'professional', label: 'Professional', description: 'High-level competition' },
+    { value: 'mixed', label: 'Mixed', description: 'All skill levels welcome' }
+  ];
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content max-w-4xl w-full max-h-[90vh] overflow-auto" onClick={e => e.stopPropagation()}>
-        {/* Modal Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Create Tournament</h2>
-            <p className="text-gray-600">Set up your new tournament</p>
-          </div>
-          <button
-            onClick={onClose}
-            className="btn btn-outline btn-sm"
-          >
-            <X size={16} />
-          </button>
-        </div>
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+        {/* Background overlay */}
+        <div 
+          className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
+          onClick={onClose}
+        ></div>
 
-        {/* Progress Bar */}
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-medium text-gray-700">
-              Step {currentStep} of {steps.length}
-            </span>
-            <span className="text-sm text-gray-600">
-              {Math.round(getStepProgress())}% Complete
-            </span>
-          </div>
-          
-          <div className="progress-bar mb-6">
-            <div 
-              className="progress-fill transition-all duration-500"
-              style={{ width: `${getStepProgress()}%` }}
-            ></div>
-          </div>
-
-          {/* Step Navigation */}
-          <div className="flex justify-between">
-            {steps.map((step, index) => (
-              <div
-                key={step.id}
-                className={`flex flex-col items-center cursor-pointer transition ${
-                  currentStep >= step.id
-                    ? 'text-primary-600'
-                    : 'text-gray-400'
-                }`}
-                onClick={() => currentStep > step.id && setCurrentStep(step.id)}
-              >
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 transition ${
-                  currentStep >= step.id
-                    ? 'bg-primary-500 text-white'
-                    : 'bg-gray-200 text-gray-400'
-                }`}>
-                  {currentStep > step.id ? (
-                    <Check size={16} />
-                  ) : (
-                    <step.icon size={16} />
-                  )}
-                </div>
-                <span className="text-xs font-medium text-center">
-                  {step.title}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Step Content */}
-        <div className="p-6">
-          {/* Step 1: Basic Information */}
-          {currentStep === 1 && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="form-group">
-                  <label className="form-label">Tournament Name *</label>
-                  <input
-                    type="text"
-                    className={`form-input ${errors.name ? 'border-error-500' : ''}`}
-                    placeholder="Enter tournament name"
-                    value={tournamentData.name}
-                    onChange={(e) => handleInputChange('name', e.target.value)}
-                  />
-                  {errors.name && (
-                    <p className="text-error-500 text-sm mt-1">{errors.name}</p>
-                  )}
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Category</label>
-                  <select
-                    className="form-select"
-                    value={tournamentData.category}
-                    onChange={(e) => handleInputChange('category', e.target.value)}
-                  >
-                    {categories.map(cat => (
-                      <option key={cat.id} value={cat.id}>{cat.name}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Description *</label>
-                <textarea
-                  className={`form-input h-24 resize-none ${errors.description ? 'border-error-500' : ''}`}
-                  placeholder="Describe your tournament..."
-                  value={tournamentData.description}
-                  onChange={(e) => handleInputChange('description', e.target.value)}
-                />
-                {errors.description && (
-                  <p className="text-error-500 text-sm mt-1">{errors.description}</p>
-                )}
-              </div>
-
-              {/* Tournament Format */}
-              <div className="form-group">
-                <label className="form-label">Tournament Format</label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {tournamentFormats.map(format => (
-                    <div
-                      key={format.id}
-                      className={`relative p-4 border-2 rounded-lg cursor-pointer transition ${
-                        tournamentData.format === format.id
-                          ? 'border-primary-500 bg-primary-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                      onClick={() => handleInputChange('format', format.id)}
-                    >
-                      {format.recommended && (
-                        <span className="absolute top-2 right-2 bg-success-500 text-white text-xs px-2 py-1 rounded">
-                          Recommended
-                        </span>
-                      )}
-                      <div className="flex items-center gap-3 mb-2">
-                        <format.icon size={20} className="text-primary-500" />
-                        <h3 className="font-semibold">{format.name}</h3>
-                      </div>
-                      <p className="text-sm text-gray-600">{format.description}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Players and Prize */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="form-group">
-                  <label className="form-label">Max Players *</label>
-                  <input
-                    type="number"
-                    min="2"
-                    max="128"
-                    className={`form-input ${errors.maxPlayers ? 'border-error-500' : ''}`}
-                    value={tournamentData.maxPlayers}
-                    onChange={(e) => handleInputChange('maxPlayers', parseInt(e.target.value))}
-                  />
-                  {errors.maxPlayers && (
-                    <p className="text-error-500 text-sm mt-1">{errors.maxPlayers}</p>
-                  )}
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Entry Fee ($)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    className="form-input"
-                    placeholder="0.00"
-                    value={tournamentData.entryFee}
-                    onChange={(e) => handleInputChange('entryFee', parseFloat(e.target.value) || 0)}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Prize Pool ($)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    className="form-input"
-                    placeholder="0.00"
-                    value={tournamentData.prizePool}
-                    onChange={(e) => handleInputChange('prizePool', parseFloat(e.target.value) || 0)}
-                  />
-                </div>
-              </div>
-
-              {/* Prize Distribution Preview */}
-              {tournamentData.prizePool > 0 && (
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h4 className="font-semibold mb-3">Prize Distribution</h4>
-                  <div className="grid grid-cols-3 gap-4">
-                    {calculatePrizeDistribution().map(prize => (
-                      <div key={prize.place} className="text-center">
-                        <div className="font-semibold text-gray-900">{prize.place}</div>
-                        <div className="text-lg font-bold text-primary-600">${prize.amount}</div>
-                        <div className="text-sm text-gray-600">{prize.percentage}%</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+        {/* Modal panel */}
+        <div className="inline-block w-full max-w-4xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-lg">
+          {/* Modal header */}
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">Create Tournament</h2>
+              <p className="text-gray-600">Step {currentStep} of {totalSteps}: {getStepTitle(currentStep)}</p>
             </div>
-          )}
+            <button
+              onClick={onClose}
+              className="btn btn-outline btn-sm"
+            >
+              <X size={16} />
+            </button>
+          </div>
 
-          {/* Step 2: Schedule */}
-          {currentStep === 2 && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="form-group">
-                  <label className="form-label">Start Date *</label>
-                  <input
-                    type="date"
-                    className={`form-input ${errors.startDate ? 'border-error-500' : ''}`}
-                    value={tournamentData.startDate}
-                    onChange={(e) => handleInputChange('startDate', e.target.value)}
-                    min={new Date().toISOString().split('T')[0]}
-                  />
-                  {errors.startDate && (
-                    <p className="text-error-500 text-sm mt-1">{errors.startDate}</p>
-                  )}
+          {/* Progress bar */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-2">
+              {Array.from({ length: totalSteps }, (_, i) => (
+                <div
+                  key={i + 1}
+                  className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
+                    i + 1 <= currentStep
+                      ? 'bg-primary-500 text-white'
+                      : 'bg-gray-200 text-gray-600'
+                  }`}
+                >
+                  {i + 1}
                 </div>
+              ))}
+            </div>
+            <div className="progress-bar">
+              <div 
+                className="progress-fill transition-all duration-300"
+                style={{ width: `${(currentStep / totalSteps) * 100}%` }}
+              ></div>
+            </div>
+          </div>
 
-                <div className="form-group">
-                  <label className="form-label">Start Time *</label>
-                  <input
-                    type="time"
-                    className={`form-input ${errors.startTime ? 'border-error-500' : ''}`}
-                    value={tournamentData.startTime}
-                    onChange={(e) => handleInputChange('startTime', e.target.value)}
-                  />
-                  {errors.startTime && (
-                    <p className="text-error-500 text-sm mt-1">{errors.startTime}</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Registration Deadline *</label>
-                <input
-                  type="datetime-local"
-                  className={`form-input ${errors.registrationDeadline ? 'border-error-500' : ''}`}
-                  value={tournamentData.registrationDeadline}
-                  onChange={(e) => handleInputChange('registrationDeadline', e.target.value)}
-                  min={new Date().toISOString().slice(0, 16)}
-                  max={tournamentData.startDate && tournamentData.startTime 
-                    ? `${tournamentData.startDate}T${tournamentData.startTime}`
-                    : undefined
-                  }
-                />
-                {errors.registrationDeadline && (
-                  <p className="text-error-500 text-sm mt-1">{errors.registrationDeadline}</p>
-                )}
-              </div>
-
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <div className="flex items-start gap-3">
-                  <Info size={20} className="text-blue-500 flex-shrink-0 mt-0.5" />
+          {/* Step content */}
+          <div className="mb-8">
+            {/* Step 1: Basic Information */}
+            {currentStep === 1 && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <h4 className="font-semibold text-blue-900 mb-1">Scheduling Tips</h4>
-                    <ul className="text-sm text-blue-800 space-y-1">
-                      <li>• Allow enough time between registration deadline and start</li>
-                      <li>• Consider time zones if you have international participants</li>
-                      <li>• Single elimination typically takes 3-4 hours for 16 players</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Step 3: Players */}
-          {currentStep === 3 && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="form-group">
-                  <label className="form-label">Location *</label>
-                  <input
-                    type="text"
-                    className={`form-input ${errors.location ? 'border-error-500' : ''}`}
-                    placeholder="City, State or Online"
-                    value={tournamentData.location}
-                    onChange={(e) => handleInputChange('location', e.target.value)}
-                  />
-                  {errors.location && (
-                    <p className="text-error-500 text-sm mt-1">{errors.location}</p>
-                  )}
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Venue Name</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="Convention Center, Gaming Lounge, etc."
-                    value={tournamentData.venue}
-                    onChange={(e) => handleInputChange('venue', e.target.value)}
-                  />
-                </div>
-              </div>
-
-              {/* Registration Settings */}
-              <div className="bg-gray-50 p-6 rounded-lg">
-                <h3 className="font-semibold text-gray-900 mb-4">Registration Settings</h3>
-                
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium text-gray-900">Allow Public Registration</h4>
-                      <p className="text-sm text-gray-600">Players can register themselves</p>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={tournamentData.allowRegistration}
-                        onChange={(e) => handleInputChange('allowRegistration', e.target.checked)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Tournament Name *
                     </label>
+                    <input
+                      type="text"
+                      className={`form-input ${errors.name ? 'border-red-500' : ''}`}
+                      placeholder="Enter tournament name"
+                      value={formData.name}
+                      onChange={(e) => handleInputChange('name', e.target.value)}
+                    />
+                    {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
                   </div>
 
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium text-gray-900">Require Approval</h4>
-                      <p className="text-sm text-gray-600">Manually approve each registration</p>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={tournamentData.requireApproval}
-                        onChange={(e) => handleInputChange('requireApproval', e.target.checked)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Category *
                     </label>
-                  </div>
-                </div>
-              </div>
-
-              {/* Pre-registered Players */}
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-gray-900">Pre-registered Players</h3>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={shufflePlayers}
-                      className="btn btn-outline btn-sm"
-                      disabled={tournamentData.players.length < 2}
+                    <select
+                      className="form-select"
+                      value={formData.category}
+                      onChange={(e) => handleInputChange('category', e.target.value)}
                     >
-                      <Shuffle size={16} />
-                      Shuffle
-                    </button>
+                      {categoryOptions.map(option => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Description *
+                  </label>
+                  <textarea
+                    className={`form-textarea ${errors.description ? 'border-red-500' : ''}`}
+                    rows={3}
+                    placeholder="Describe your tournament"
+                    value={formData.description}
+                    onChange={(e) => handleInputChange('description', e.target.value)}
+                  />
+                  {errors.description && <p className="text-red-500 text-sm mt-1">{errors.description}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tournament Format *
+                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {formatOptions.map(option => (
+                      <div
+                        key={option.value}
+                        className={`p-4 border rounded-lg cursor-pointer transition ${
+                          formData.format === option.value
+                            ? 'border-primary-500 bg-primary-50'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                        onClick={() => handleInputChange('format', option.value)}
+                      >
+                        <h4 className="font-medium text-gray-900">{option.label}</h4>
+                        <p className="text-sm text-gray-600">{option.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Max Players *
+                    </label>
+                    <input
+                      type="number"
+                      min="2"
+                      max="128"
+                      className={`form-input ${errors.maxPlayers ? 'border-red-500' : ''}`}
+                      value={formData.maxPlayers}
+                      onChange={(e) => handleInputChange('maxPlayers', parseInt(e.target.value) || 0)}
+                    />
+                    {errors.maxPlayers && <p className="text-red-500 text-sm mt-1">{errors.maxPlayers}</p>}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Entry Fee ($)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      className={`form-input ${errors.entryFee ? 'border-red-500' : ''}`}
+                      value={formData.entryFee}
+                      onChange={(e) => handleInputChange('entryFee', parseFloat(e.target.value) || 0)}
+                    />
+                    {errors.entryFee && <p className="text-red-500 text-sm mt-1">{errors.entryFee}</p>}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Prize Pool ($)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      className={`form-input ${errors.prizePool ? 'border-red-500' : ''}`}
+                      value={formData.prizePool}
+                      onChange={(e) => handleInputChange('prizePool', parseFloat(e.target.value) || 0)}
+                    />
+                    {errors.prizePool && <p className="text-red-500 text-sm mt-1">{errors.prizePool}</p>}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Schedule */}
+            {currentStep === 2 && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Start Date *
+                    </label>
+                    <input
+                      type="date"
+                      className={`form-input ${errors.startDate ? 'border-red-500' : ''}`}
+                      value={formData.startDate}
+                      onChange={(e) => handleInputChange('startDate', e.target.value)}
+                    />
+                    {errors.startDate && <p className="text-red-500 text-sm mt-1">{errors.startDate}</p>}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Start Time *
+                    </label>
+                    <input
+                      type="time"
+                      className={`form-input ${errors.startTime ? 'border-red-500' : ''}`}
+                      value={formData.startTime}
+                      onChange={(e) => handleInputChange('startTime', e.target.value)}
+                    />
+                    {errors.startTime && <p className="text-red-500 text-sm mt-1">{errors.startTime}</p>}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      End Date
+                    </label>
+                    <input
+                      type="date"
+                      className="form-input"
+                      value={formData.endDate}
+                      onChange={(e) => handleInputChange('endDate', e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      End Time
+                    </label>
+                    <input
+                      type="time"
+                      className="form-input"
+                      value={formData.endTime}
+                      onChange={(e) => handleInputChange('endTime', e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Registration Deadline *
+                  </label>
+                  <input
+                    type="datetime-local"
+                    className={`form-input ${errors.registrationDeadline ? 'border-red-500' : ''}`}
+                    value={formData.registrationDeadline}
+                    onChange={(e) => handleInputChange('registrationDeadline', e.target.value)}
+                  />
+                  {errors.registrationDeadline && <p className="text-red-500 text-sm mt-1">{errors.registrationDeadline}</p>}
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Location & Players */}
+            {currentStep === 3 && (
+              <div className="space-y-6">
+                <div>
+                  <label className="flex items-center gap-2 mb-4">
+                    <input
+                      type="checkbox"
+                      className="form-checkbox"
+                      checked={formData.isOnline}
+                      onChange={(e) => handleInputChange('isOnline', e.target.checked)}
+                    />
+                    <span className="text-sm font-medium text-gray-700">Online Tournament</span>
+                  </label>
+                </div>
+
+                {!formData.isOnline && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Location *
+                      </label>
+                      <input
+                        type="text"
+                        className={`form-input ${errors.location ? 'border-red-500' : ''}`}
+                        placeholder="City, State/Country"
+                        value={formData.location}
+                        onChange={(e) => handleInputChange('location', e.target.value)}
+                      />
+                      {errors.location && <p className="text-red-500 text-sm mt-1">{errors.location}</p>}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Venue
+                      </label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="Venue name"
+                        value={formData.venue}
+                        onChange={(e) => handleInputChange('venue', e.target.value)}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Address
+                      </label>
+                      <textarea
+                        className="form-textarea"
+                        rows={2}
+                        placeholder="Full address"
+                        value={formData.address}
+                        onChange={(e) => handleInputChange('address', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Pre-register Players */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-medium text-gray-900">Pre-register Players</h3>
                     <button
+                      type="button"
                       onClick={addPlayer}
-                      className="btn btn-primary btn-sm"
+                      className="btn btn-outline btn-sm"
+                      disabled={formData.players.length >= formData.maxPlayers}
                     >
                       <Plus size={16} />
                       Add Player
                     </button>
                   </div>
-                </div>
 
-                {tournamentData.players.length > 0 ? (
-                  <div className="space-y-3 max-h-60 overflow-y-auto">
-                    {tournamentData.players.map((player, index) => (
-                      <div key={player.id} className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg">
-                        <div className="flex-shrink-0 w-8 h-8 bg-primary-500 text-white rounded-full flex items-center justify-center font-semibold">
-                          {player.seed}
-                        </div>
-                        
-                        <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {formData.players.length > 0 && (
+                    <div className="space-y-3 mb-4">
+                      {formData.players.map((player, index) => (
+                        <div key={player.id} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg">
+                          <span className="w-8 h-8 bg-primary-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                            {player.seed}
+                          </span>
                           <input
                             type="text"
                             placeholder="Player name"
-                            className="form-input"
+                            className="form-input flex-1"
                             value={player.name}
                             onChange={(e) => updatePlayer(player.id, 'name', e.target.value)}
                           />
                           <input
                             type="email"
-                            placeholder="Email (optional)"
-                            className="form-input"
+                            placeholder="Email"
+                            className="form-input flex-1"
                             value={player.email}
                             onChange={(e) => updatePlayer(player.id, 'email', e.target.value)}
                           />
                           <select
-                            className="form-select"
+                            className="form-select w-32"
                             value={player.rank}
                             onChange={(e) => updatePlayer(player.id, 'rank', e.target.value)}
                           >
@@ -747,176 +614,214 @@ const CreateTournamentModal = ({ isOpen, onClose, onTournamentCreated }) => {
                             <option value="Platinum">Platinum</option>
                             <option value="Diamond">Diamond</option>
                           </select>
+                          <button
+                            type="button"
+                            onClick={() => removePlayer(player.id)}
+                            className="btn btn-outline btn-sm text-red-600 hover:bg-red-50"
+                          >
+                            <Minus size={16} />
+                          </button>
                         </div>
-                        
-                        <button
-                          onClick={() => removePlayer(player.id)}
-                          className="btn btn-outline btn-sm text-error-600 border-error-300 hover:bg-error-50"
-                        >
-                          <X size={16} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <Users size={48} className="mx-auto mb-4 text-gray-300" />
-                    <p>No players added yet. Add players manually or allow public registration.</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+                      ))}
+                    </div>
+                  )}
 
-          {/* Step 4: Settings */}
-          {currentStep === 4 && (
-            <div className="space-y-6">
-              <div className="form-group">
-                <label className="form-label">Tournament Rules *</label>
-                <textarea
-                  className={`form-input h-32 resize-none ${errors.rules ? 'border-error-500' : ''}`}
-                  placeholder="Describe the rules and regulations for your tournament..."
-                  value={tournamentData.rules}
-                  onChange={(e) => handleInputChange('rules', e.target.value)}
-                />
-                {errors.rules && (
-                  <p className="text-error-500 text-sm mt-1">{errors.rules}</p>
-                )}
-              </div>
-
-              {/* Game Settings */}
-              <div className="bg-gray-50 p-6 rounded-lg">
-                <h3 className="font-semibold text-gray-900 mb-4">Game Settings</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="form-group">
-                    <label className="form-label">Match Duration (minutes)</label>
-                    <input
-                      type="number"
-                      min="5"
-                      max="180"
-                      className="form-input"
-                      value={tournamentData.gameSettings.matchDuration}
-                      onChange={(e) => handleNestedInputChange('gameSettings', 'matchDuration', parseInt(e.target.value))}
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">Points to Win</label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="50"
-                      className="form-input"
-                      value={tournamentData.gameSettings.pointsToWin}
-                      onChange={(e) => handleNestedInputChange('gameSettings', 'pointsToWin', parseInt(e.target.value))}
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">Time Control</label>
-                    <select
-                      className="form-select"
-                      value={tournamentData.gameSettings.timeControl}
-                      onChange={(e) => handleNestedInputChange('gameSettings', 'timeControl', e.target.value)}
+                  {formData.players.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={shufflePlayers}
+                      className="btn btn-outline btn-sm"
                     >
-                      <option value="blitz">Blitz (Fast)</option>
-                      <option value="standard">Standard</option>
-                      <option value="extended">Extended (Slow)</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Privacy Settings */}
-              <div className="bg-gray-50 p-6 rounded-lg">
-                <h3 className="font-semibold text-gray-900 mb-4">Privacy & Access</h3>
-                
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium text-gray-900">Private Tournament</h4>
-                      <p className="text-sm text-gray-600">Only invited players can join</p>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={tournamentData.isPrivate}
-                        onChange={(e) => handleInputChange('isPrivate', e.target.checked)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
-                    </label>
-                  </div>
-
-                  {tournamentData.isPrivate && (
-                    <div className="form-group">
-                      <label className="form-label">Tournament Password</label>
-                      <input
-                        type="password"
-                        className="form-input"
-                        placeholder="Enter password for private tournament"
-                        value={tournamentData.password}
-                        onChange={(e) => handleInputChange('password', e.target.value)}
-                      />
-                    </div>
+                      <Shuffle size={16} />
+                      Shuffle Seeding
+                    </button>
                   )}
                 </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
 
-        {/* Modal Footer */}
-        <div className="flex items-center justify-between p-6 border-t border-gray-200">
-          <div className="flex gap-2">
-            {currentStep > 1 && (
-              <button
-                onClick={prevStep}
-                className="btn btn-outline"
-              >
-                <ArrowLeft size={16} />
-                Previous
-              </button>
+            {/* Step 4: Settings & Review */}
+            {currentStep === 4 && (
+              <div className="space-y-6">
+                {/* Registration Settings */}
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Registration Settings</h3>
+                  <div className="space-y-3">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        className="form-checkbox"
+                        checked={formData.allowRegistration}
+                        onChange={(e) => handleInputChange('allowRegistration', e.target.checked)}
+                      />
+                      <span className="text-sm text-gray-700">Allow public registration</span>
+                    </label>
+
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        className="form-checkbox"
+                        checked={formData.requireApproval}
+                        onChange={(e) => handleInputChange('requireApproval', e.target.checked)}
+                      />
+                      <span className="text-sm text-gray-700">Require approval for registration</span>
+                    </label>
+
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        className="form-checkbox"
+                        checked={formData.isPrivate}
+                        onChange={(e) => handleInputChange('isPrivate', e.target.checked)}
+                      />
+                      <span className="text-sm text-gray-700">Private tournament (password required)</span>
+                    </label>
+
+                    {formData.isPrivate && (
+                      <div className="ml-6">
+                        <input
+                          type="password"
+                          className={`form-input ${errors.password ? 'border-red-500' : ''}`}
+                          placeholder="Tournament password"
+                          value={formData.password}
+                          onChange={(e) => handleInputChange('password', e.target.value)}
+                        />
+                        {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Game Settings */}
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Game Settings</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Match Duration (minutes)
+                      </label>
+                      <input
+                        type="number"
+                        min="15"
+                        max="180"
+                        className="form-input"
+                        value={formData.gameSettings.matchDuration}
+                        onChange={(e) => handleGameSettingChange('matchDuration', parseInt(e.target.value) || 45)}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Points to Win
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="50"
+                        className="form-input"
+                        value={formData.gameSettings.pointsToWin}
+                        onChange={(e) => handleGameSettingChange('pointsToWin', parseInt(e.target.value) || 21)}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Time Control
+                      </label>
+                      <select
+                        className="form-select"
+                        value={formData.gameSettings.timeControl}
+                        onChange={(e) => handleGameSettingChange('timeControl', e.target.value)}
+                      >
+                        <option value="blitz">Blitz</option>
+                        <option value="standard">Standard</option>
+                        <option value="extended">Extended</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Rules */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tournament Rules
+                  </label>
+                  <textarea
+                    className="form-textarea"
+                    rows={4}
+                    placeholder="Enter tournament rules and regulations..."
+                    value={formData.rules}
+                    onChange={(e) => handleInputChange('rules', e.target.value)}
+                  />
+                </div>
+
+                {/* Review Summary */}
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="text-lg font-medium text-gray-900 mb-3">Tournament Summary</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p><strong>Name:</strong> {formData.name}</p>
+                      <p><strong>Format:</strong> {formatOptions.find(f => f.value === formData.format)?.label}</p>
+                      <p><strong>Category:</strong> {categoryOptions.find(c => c.value === formData.category)?.label}</p>
+                      <p><strong>Max Players:</strong> {formData.maxPlayers}</p>
+                    </div>
+                    <div>
+                      <p><strong>Entry Fee:</strong> ${formData.entryFee}</p>
+                      <p><strong>Prize Pool:</strong> ${formData.prizePool}</p>
+                      <p><strong>Location:</strong> {formData.isOnline ? 'Online' : formData.location}</p>
+                      <p><strong>Pre-registered:</strong> {formData.players.length} players</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
-          
-          <div className="flex gap-2">
+
+          {/* Modal footer */}
+          <div className="flex items-center justify-between pt-6 border-t border-gray-200">
             <button
-              onClick={onClose}
+              onClick={handlePrevious}
+              disabled={currentStep === 1}
               className="btn btn-outline"
-              disabled={loading}
             >
-              Cancel
+              Previous
             </button>
-            
-            {currentStep < steps.length ? (
+
+            <div className="flex gap-2">
               <button
-                onClick={nextStep}
-                className="btn btn-primary"
+                onClick={onClose}
+                className="btn btn-outline"
               >
-                Next
-                <ArrowRight size={16} />
+                Cancel
               </button>
-            ) : (
-              <button
-                onClick={handleSubmit}
-                disabled={loading}
-                className="btn btn-primary"
-              >
-                {loading ? (
-                  <>
-                    <div className="spinner w-4 h-4 border-2"></div>
-                    Creating...
-                  </>
-                ) : (
-                  <>
-                    <Save size={16} />
-                    Create Tournament
-                  </>
-                )}
-              </button>
-            )}
+
+              {currentStep < totalSteps ? (
+                <button
+                  onClick={handleNext}
+                  className="btn btn-primary"
+                >
+                  Next
+                </button>
+              ) : (
+                <button
+                  onClick={handleSubmit}
+                  disabled={loading}
+                  className="btn btn-primary"
+                >
+                  {loading ? (
+                    <>
+                      <div className="spinner w-4 h-4 border-2"></div>
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <Trophy size={16} />
+                      Create Tournament
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
