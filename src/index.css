@@ -781,3 +781,334 @@ body {
     font-size: 1.875rem;
   }
 }
+/* Professional Bracket Styles */
+.professional-bracket-container {
+  padding: 2rem;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  border-radius: 1rem;
+  margin: 2rem 0;
+}
+
+.bracket-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.bracket-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+  margin-bottom: 3rem;
+}
+
+.upper-bracket,
+.lower-bracket {
+  background: white;
+  border-radius: 1rem;
+  padding: 2rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.bracket-section-title {
+  text-align: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.bracket-rounds {
+  display: flex;
+  gap: 4rem;
+  justify-content: center;
+  align-items: center;
+  overflow-x: auto;
+  padding: 1rem 0;
+}
+
+.bracket-round-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 280px;
+}
+
+.bracket-round-header {
+  margin-bottom: 1.5rem;
+}
+
+.round-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #374151;
+  text-align: center;
+  padding: 0.5rem 1rem;
+  background: #f3f4f6;
+  border-radius: 0.5rem;
+}
+
+.bracket-round-matches {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.match-wrapper {
+  position: relative;
+}
+
+.bracket-match-container {
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.bracket-match-container:hover {
+  transform: translateY(-2px);
+}
+
+.match-number {
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  background: #3b82f6;
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  z-index: 10;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.bracket-match-card {
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  min-width: 250px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.bracket-match-card:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+.bracket-player-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: #ffffff;
+  transition: all 0.3s ease;
+}
+
+.bracket-player-card.top {
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.bracket-player-card.winner {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-left: 4px solid #f59e0b;
+}
+
+.bracket-player-card.empty {
+  background: #f9fafb;
+  color: #9ca3af;
+}
+
+.player-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.player-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #374151;
+  border: 2px solid #d1d5db;
+}
+
+.bracket-player-card.winner .player-avatar {
+  background: #fbbf24;
+  border-color: #f59e0b;
+  color: white;
+}
+
+.player-name {
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.9rem;
+}
+
+.bracket-player-card.winner .player-name {
+  color: #92400e;
+}
+
+.player-score {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #6b7280;
+  min-width: 32px;
+  text-align: center;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  background: #f3f4f6;
+}
+
+.player-score.winner-score {
+  background: #f59e0b;
+  color: white;
+  box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
+}
+
+/* Champion Section */
+.champion-section {
+  text-align: center;
+  margin: 3rem 0;
+}
+
+.champion-card {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  border-radius: 1rem;
+  padding: 2rem;
+  color: white;
+  max-width: 400px;
+  margin: 0 auto;
+  box-shadow: 0 8px 25px rgba(245, 158, 11, 0.3);
+}
+
+.champion-crown {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.champion-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+}
+
+.champion-player {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.champion-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+}
+
+.champion-info {
+  text-align: left;
+}
+
+.champion-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.champion-subtitle {
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+/* Bracket Statistics */
+.bracket-stats {
+  background: white;
+  border-radius: 1rem;
+  padding: 2rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 2rem;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-number {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #3b82f6;
+  margin-bottom: 0.5rem;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .professional-bracket-container {
+    padding: 1rem;
+  }
+  
+  .bracket-rounds {
+    flex-direction: column;
+    gap: 2rem;
+  }
+  
+  .bracket-round-container {
+    min-width: auto;
+    width: 100%;
+  }
+  
+  .bracket-match-card {
+    min-width: auto;
+  }
+  
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Animation for bracket loading */
+@keyframes bracket-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.bracket-match-container {
+  animation: bracket-fade-in 0.6s ease-out;
+}
+
+.bracket-match-container:nth-child(1) { animation-delay: 0.1s; }
+.bracket-match-container:nth-child(2) { animation-delay: 0.2s; }
+.bracket-match-container:nth-child(3) { animation-delay: 0.3s; }
+.bracket-match-container:nth-child(4) { animation-delay: 0.4s; }
