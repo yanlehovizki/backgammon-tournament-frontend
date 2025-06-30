@@ -16,7 +16,9 @@ import {
   Eye,
   ArrowRight,
   Activity,
-  BarChart3
+  BarChart3,
+  Search,
+  Filter
 } from 'lucide-react';
 import CreateTournamentModal from './CreateTournamentModal';
 
@@ -25,6 +27,8 @@ const Dashboard = () => {
   const [tournaments, setTournaments] = useState([]);
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   // Sample data - replace with your API calls
   useEffect(() => {
@@ -46,7 +50,9 @@ const Dashboard = () => {
             currentPlayers: 24,
             maxPlayers: 32,
             prizePool: 1500,
-            format: 'single-elimination'
+            format: 'single-elimination',
+            organizer: 'Tournament Pro',
+            description: 'Annual spring championship featuring top players from around the region.'
           },
           {
             id: 2,
@@ -57,7 +63,9 @@ const Dashboard = () => {
             currentPlayers: 16,
             maxPlayers: 16,
             prizePool: 0,
-            format: 'round-robin'
+            format: 'round-robin',
+            organizer: 'Community League',
+            description: 'Perfect for new players looking to get competitive experience.'
           },
           {
             id: 3,
@@ -68,7 +76,22 @@ const Dashboard = () => {
             currentPlayers: 8,
             maxPlayers: 8,
             prizePool: 800,
-            format: 'double-elimination'
+            format: 'double-elimination',
+            organizer: 'Elite Gaming',
+            description: 'High-stakes tournament for experienced players only.'
+          },
+          {
+            id: 4,
+            name: 'Weekly Challenge #47',
+            status: 'upcoming',
+            startDate: '2025-07-08T18:00:00Z',
+            location: 'Chicago, IL',
+            currentPlayers: 12,
+            maxPlayers: 20,
+            prizePool: 200,
+            format: 'swiss-system',
+            organizer: 'Weekly Series',
+            description: 'Regular weekly tournament with rotating formats.'
           }
         ];
 
@@ -102,7 +125,8 @@ const Dashboard = () => {
       id: Date.now(),
       status: 'upcoming',
       currentPlayers: tournamentData.players ? tournamentData.players.length : 0,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      organizer: 'Current User'
     };
     
     setTournaments(prev => [newTournament, ...prev]);
@@ -122,11 +146,11 @@ const Dashboard = () => {
 
   const getStatusBadge = (status) => {
     const badges = {
-      upcoming: 'badge badge-outline',
-      active: 'badge badge-primary',
-      completed: 'badge badge-success'
+      upcoming: { class: 'bg-blue-100 text-blue-800', label: 'Upcoming' },
+      active: { class: 'bg-green-100 text-green-800', label: 'Active' },
+      completed: { class: 'bg-gray-100 text-gray-800', label: 'Completed' }
     };
-    return badges[status] || 'badge badge-outline';
+    return badges[status] || badges.upcoming;
   };
 
   const getFormatIcon = (format) => {
@@ -143,211 +167,275 @@ const Dashboard = () => {
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
-      year: 'numeric'
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
 
+  const filteredTournaments = tournaments.filter(tournament => {
+    const matchesSearch = tournament.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         tournament.location.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || tournament.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
   if (loading) {
     return (
-      <div className="container py-8">
-        <div className="flex items-center justify-center py-12">
-          <div className="spinner w-8 h-8 border-4"></div>
-          <span className="ml-3 text-gray-600">Loading dashboard...</span>
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span className="ml-3 text-gray-600">Loading dashboard...</span>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container py-8 animate-fade-in">
-      {/* Header - Original Style */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-4xl font-bold text-primary">Dashboard</h1>
-          <p className="text-secondary">Welcome back! Here's your tournament overview.</p>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Tournament Dashboard</h1>
+            <p className="text-gray-600">Manage and track your tournaments</p>
+          </div>
+          <button
+            onClick={() => {
+              console.log('Create Tournament button clicked');
+              setShowCreateModal(true);
+            }}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Create Tournament
+          </button>
         </div>
-        <button
-          onClick={() => {
-            console.log('Create Tournament button clicked');
-            setShowCreateModal(true);
-          }}
-          className="btn btn-primary"
-        >
-          <Plus size={20} />
-          Create Tournament
-        </button>
-      </div>
 
-      {/* Stats Grid - Original 4-column layout */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="card">
-          <div className="card-content">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-secondary">Total Tournaments</p>
-                <p className="text-2xl font-bold text-primary">{stats.totalTournaments}</p>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="p-5">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <Trophy className="h-6 w-6 text-gray-400" />
+                </div>
+                <div className="ml-5 w-0 flex-1">
+                  <dl>
+                    <dt className="text-sm font-medium text-gray-500 truncate">Total Tournaments</dt>
+                    <dd className="text-lg font-medium text-gray-900">{stats.totalTournaments}</dd>
+                  </dl>
+                </div>
               </div>
-              <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
-                <Trophy className="text-primary-600" size={24} />
+            </div>
+          </div>
+
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="p-5">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <Activity className="h-6 w-6 text-gray-400" />
+                </div>
+                <div className="ml-5 w-0 flex-1">
+                  <dl>
+                    <dt className="text-sm font-medium text-gray-500 truncate">Active Now</dt>
+                    <dd className="text-lg font-medium text-gray-900">{stats.activeTournaments}</dd>
+                  </dl>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="p-5">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <Users className="h-6 w-6 text-gray-400" />
+                </div>
+                <div className="ml-5 w-0 flex-1">
+                  <dl>
+                    <dt className="text-sm font-medium text-gray-500 truncate">Total Players</dt>
+                    <dd className="text-lg font-medium text-gray-900">{stats.totalPlayers}</dd>
+                  </dl>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="p-5">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <DollarSign className="h-6 w-6 text-gray-400" />
+                </div>
+                <div className="ml-5 w-0 flex-1">
+                  <dl>
+                    <dt className="text-sm font-medium text-gray-500 truncate">Prize Pool</dt>
+                    <dd className="text-lg font-medium text-gray-900">${stats.totalPrizePool?.toLocaleString()}</dd>
+                  </dl>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="card">
-          <div className="card-content">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-secondary">Active Now</p>
-                <p className="text-2xl font-bold text-primary">{stats.activeTournaments}</p>
+        {/* Search and Filter */}
+        <div className="bg-white shadow rounded-lg mb-6">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="relative flex-1 max-w-md">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Search tournaments..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
               </div>
-              <div className="w-12 h-12 bg-success-100 rounded-lg flex items-center justify-center">
-                <Activity className="text-success-600" size={24} />
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-gray-400" />
+                  <select
+                    className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 rounded-md"
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                  >
+                    <option value="all">All Status</option>
+                    <option value="upcoming">Upcoming</option>
+                    <option value="active">Active</option>
+                    <option value="completed">Completed</option>
+                  </select>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="card">
-          <div className="card-content">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-secondary">Total Players</p>
-                <p className="text-2xl font-bold text-primary">{stats.totalPlayers}</p>
-              </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Users className="text-blue-600" size={24} />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="card">
-          <div className="card-content">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-secondary">Prize Pool</p>
-                <p className="text-2xl font-bold text-primary">${stats.totalPrizePool?.toLocaleString()}</p>
-              </div>
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <DollarSign className="text-purple-600" size={24} />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content - Original 2-column layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Recent Tournaments */}
-        <div className="card">
-          <div className="card-header">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="card-title">Recent Tournaments</h3>
-                <p className="card-description">Your latest tournament activity</p>
-              </div>
-              <Link to="/tournaments" className="btn btn-outline btn-sm">
-                View All
-                <ArrowRight size={16} />
-              </Link>
-            </div>
-          </div>
-          <div className="card-content">
-            {tournaments.length > 0 ? (
-              <div className="space-y-4">
-                {tournaments.slice(0, 3).map((tournament) => {
-                  const FormatIcon = getFormatIcon(tournament.format);
-                  
-                  return (
-                    <div key={tournament.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
-                          <FormatIcon className="text-primary-600" size={20} />
+        {/* Tournaments Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredTournaments.length > 0 ? (
+            filteredTournaments.map((tournament) => {
+              const FormatIcon = getFormatIcon(tournament.format);
+              const statusBadge = getStatusBadge(tournament.status);
+              
+              return (
+                <div key={tournament.id} className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow">
+                  <div className="px-6 py-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0">
+                          <FormatIcon className="h-6 w-6 text-blue-600" />
                         </div>
-                        <div>
-                          <h4 className="font-semibold text-primary">{tournament.name}</h4>
-                          <div className="flex items-center gap-3 text-sm text-secondary">
-                            <div className="flex items-center gap-1">
-                              <Calendar size={12} />
-                              {formatDate(tournament.startDate)}
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <MapPin size={12} />
-                              {tournament.location}
-                            </div>
-                          </div>
+                        <div className="ml-3">
+                          <h3 className="text-lg font-medium text-gray-900 truncate">
+                            {tournament.name}
+                          </h3>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className={getStatusBadge(tournament.status)}>
-                          {tournament.status}
-                        </span>
-                        <Link
-                          to={`/tournaments/${tournament.id}`}
-                          className="btn btn-outline btn-sm"
-                        >
-                          <Eye size={14} />
-                        </Link>
-                      </div>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusBadge.class}`}>
+                        {statusBadge.label}
+                      </span>
                     </div>
-                  );
-                })}
+                    
+                    <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+                      {tournament.description}
+                    </p>
+                    
+                    <div className="space-y-2 mb-4">
+                      <div className="flex items-center text-sm text-gray-500">
+                        <Calendar className="h-4 w-4 mr-2" />
+                        {formatDate(tournament.startDate)}
+                      </div>
+                      <div className="flex items-center text-sm text-gray-500">
+                        <MapPin className="h-4 w-4 mr-2" />
+                        {tournament.location}
+                      </div>
+                      <div className="flex items-center text-sm text-gray-500">
+                        <Users className="h-4 w-4 mr-2" />
+                        {tournament.currentPlayers}/{tournament.maxPlayers} players
+                      </div>
+                      {tournament.prizePool > 0 && (
+                        <div className="flex items-center text-sm text-gray-500">
+                          <DollarSign className="h-4 w-4 mr-2" />
+                          ${tournament.prizePool.toLocaleString()} prize pool
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="text-xs text-gray-500">
+                        by {tournament.organizer}
+                      </div>
+                      <Link
+                        to={`/tournaments/${tournament.id}`}
+                        className="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        View
+                      </Link>
+                    </div>
+                  </div>
+                  
+                  {/* Progress bar for player capacity */}
+                  <div className="bg-gray-50 px-6 py-3">
+                    <div className="flex items-center justify-between text-sm text-gray-600 mb-1">
+                      <span>Registration</span>
+                      <span>{Math.round((tournament.currentPlayers / tournament.maxPlayers) * 100)}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${(tournament.currentPlayers / tournament.maxPlayers) * 100}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <div className="col-span-full">
+              <div className="text-center py-12">
+                <Trophy className="mx-auto h-12 w-12 text-gray-400" />
+                <h3 className="mt-2 text-sm font-medium text-gray-900">No tournaments found</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  {searchTerm || statusFilter !== 'all' 
+                    ? 'Try adjusting your search or filter criteria.'
+                    : 'Get started by creating your first tournament.'
+                  }
+                </p>
+                {(!searchTerm && statusFilter === 'all') && (
+                  <div className="mt-6">
+                    <button
+                      onClick={() => setShowCreateModal(true)}
+                      className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Create Tournament
+                    </button>
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="text-center py-8">
-                <Trophy size={48} className="mx-auto text-gray-300 mb-4" />
-                <h4 className="text-lg font-semibold text-primary mb-2">No tournaments yet</h4>
-                <p className="text-secondary mb-4">Create your first tournament to get started!</p>
-                <button
-                  onClick={() => setShowCreateModal(true)}
-                  className="btn btn-primary"
-                >
-                  <Plus size={16} />
-                  Create Tournament
-                </button>
-              </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
-        {/* Quick Actions */}
-        <div className="card">
-          <div className="card-header">
-            <h3 className="card-title">Quick Actions</h3>
-            <p className="card-description">Common tournament management tasks</p>
-          </div>
-          <div className="card-content space-y-3">
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="w-full btn btn-primary"
-            >
-              <Plus size={16} />
-              Create New Tournament
-            </button>
-            <Link to="/tournaments" className="w-full btn btn-outline">
-              <Trophy size={16} />
-              View All Tournaments
-            </Link>
-            <Link to="/profile" className="w-full btn btn-outline">
-              <Users size={16} />
-              Manage Profile
-            </Link>
-          </div>
-        </div>
+        {/* Create Tournament Modal */}
+        {showCreateModal && (
+          <CreateTournamentModal
+            isOpen={showCreateModal}
+            onClose={() => {
+              console.log('Closing modal');
+              setShowCreateModal(false);
+            }}
+            onTournamentCreated={handleCreateTournament}
+          />
+        )}
       </div>
-
-      {/* Create Tournament Modal */}
-      {showCreateModal && (
-        <CreateTournamentModal
-          isOpen={showCreateModal}
-          onClose={() => {
-            console.log('Closing modal');
-            setShowCreateModal(false);
-          }}
-          onTournamentCreated={handleCreateTournament}
-        />
-      )}
     </div>
   );
 };
