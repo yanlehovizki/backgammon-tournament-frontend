@@ -1,78 +1,133 @@
-import { Link, useLocation } from 'react-router-dom'
-import { Button } from './ui/button'
-import { Trophy, User, LogOut, Home } from 'lucide-react'
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { 
+  Trophy, 
+  User, 
+  LogOut, 
+  Menu, 
+  X,
+  Home,
+  Calendar,
+  Settings
+} from 'lucide-react';
 
-const Navbar = ({ user, onLogout }) => {
-  const location = useLocation()
+const Navbar = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  const isActive = (path) => location.pathname === path
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const userData = localStorage.getItem('user');
+    
+    if (token && userData) {
+      setIsLoggedIn(true);
+      setUser(JSON.parse(userData));
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setIsLoggedIn(false);
+    setUser(null);
+    navigate('/login');
+  };
+
+  const isActive = (path) => location.pathname === path;
+
+  const navLinks = [
+    { path: '/', label: 'Dashboard', icon: Home },
+    { path: '/tournaments', label: 'Tournaments', icon: Calendar },
+  ];
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-card border-b border-border">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo and Brand */}
-          <div className="flex items-center space-x-4">
-            <Trophy className="h-8 w-8 text-primary" />
-            <h1 className="text-xl font-bold text-foreground">Backgammon Tournament Manager</h1>
+    <nav className="navbar">
+      <div className="container">
+        <div className="navbar-content">
+          {/* Brand */}
+          <Link to="/" className="navbar-brand">
+            <Trophy size={32} />
+            <span>Tournament Pro</span>
+          </Link>
+
+          {/* Desktop Navigation */}
+          <div className="navbar-nav hidden md:flex">
+            {navLinks.map(({ path, label, icon: Icon }) => (
+              <Link
+                key={path}
+                to={path}
+                className={`nav-link ${isActive(path) ? 'active' : ''}`}
+              >
+                <Icon size={18} />
+                {label}
+              </Link>
+            ))}
           </div>
 
-          {/* Navigation Links */}
-          <div className="hidden md:flex items-center space-x-4">
-            <Link to="/">
-              <Button 
-                variant={isActive('/') ? 'default' : 'ghost'} 
-                size="sm"
-                className="flex items-center space-x-2"
-              >
-                <Home className="h-4 w-4" />
-                <span>Dashboard</span>
-              </Button>
-            </Link>
-            
-            <Link to="/tournaments">
-              <Button 
-                variant={isActive('/tournaments') ? 'default' : 'ghost'} 
-                size="sm"
-                className="flex items-center space-x-2"
-              >
-                <Trophy className="h-4 w-4" />
-                <span>Tournaments</span>
-              </Button>
-            </Link>
-            
-            <Link to="/profile">
-              <Button 
-                variant={isActive('/profile') ? 'default' : 'ghost'} 
-                size="sm"
-                className="flex items-center space-x-2"
-              >
-                <User className="h-4 w-4" />
-                <span>Profile</span>
-              </Button>
-            </Link>
-          </div>
+          {/* User Menu */}
+          <div className="flex items-center gap-4">
+            {isLoggedIn ? (
+              <div className="flex items-center gap-3">
+                <Link
+                  to="/profile"
+                  className={`nav-link ${isActive('/profile') ? 'active' : ''}`}
+                >
+                  <User size={18} />
+                  <span className="hidden md:inline">{user?.username || 'Profile'}</span>
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="btn btn-outline btn-sm"
+                >
+                  <LogOut size={16} />
+                  <span className="hidden md:inline">Logout</span>
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Link to="/login" className="btn btn-outline btn-sm">
+                  Login
+                </Link>
+                <Link to="/register" className="btn btn-primary btn-sm">
+                  Sign Up
+                </Link>
+              </div>
+            )}
 
-          {/* User Info and Logout */}
-          <div className="flex items-center space-x-4">
-            <span className="text-sm text-muted-foreground">
-              Welcome, {user.name}
-            </span>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={onLogout}
-              className="flex items-center space-x-2"
+            {/* Mobile Menu Button */}
+            <button
+              className="md:hidden btn btn-outline btn-sm"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             >
-              <LogOut className="h-4 w-4" />
-              <span>Logout</span>
-            </Button>
+              {isMobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
+            </button>
           </div>
         </div>
+
+        {/* Mobile Menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden border-t border-gray-200 py-4 animate-fade-in">
+            <div className="flex flex-col gap-2">
+              {navLinks.map(({ path, label, icon: Icon }) => (
+                <Link
+                  key={path}
+                  to={path}
+                  className={`nav-link ${isActive(path) ? 'active' : ''}`}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <Icon size={18} />
+                  {label}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </nav>
-  )
-}
+  );
+};
 
-export default Navbar
-
+export default Navbar;

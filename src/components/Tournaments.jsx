@@ -1,252 +1,386 @@
-import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import { Badge } from './ui/badge'
-import { Plus, Calendar, Users, Trophy, Search, Edit } from 'lucide-react'
-import { API_ENDPOINTS, apiRequest } from '../config/api'
-import CreateTournamentModal from './CreateTournamentModal'
-import EditTournamentModal from './EditTournamentModal'
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { 
+  Search, 
+  Filter, 
+  Plus, 
+  Calendar, 
+  Users, 
+  Trophy, 
+  Clock,
+  MapPin,
+  DollarSign,
+  Eye,
+  Edit,
+  Trash2,
+  MoreVertical
+} from 'lucide-react';
 
-const Tournaments = ({ user }) => {
-  const [tournaments, setTournaments] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [filterStatus, setFilterStatus] = useState('all')
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [showEditModal, setShowEditModal] = useState(false)
-  const [selectedTournament, setSelectedTournament] = useState(null)
+const Tournaments = () => {
+  const [tournaments, setTournaments] = useState([]);
+  const [filteredTournaments, setFilteredTournaments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('date');
 
   useEffect(() => {
-    fetchTournaments()
-  }, [])
+    fetchTournaments();
+  }, []);
+
+  useEffect(() => {
+    filterAndSortTournaments();
+  }, [tournaments, searchTerm, statusFilter, sortBy]);
 
   const fetchTournaments = async () => {
     try {
-      const response = await apiRequest(API_ENDPOINTS.TOURNAMENTS)
-      if (response.success) {
-        setTournaments(response.data.tournaments || [])
-      }
+      setLoading(true);
+      
+      // Simulate API call with mock data
+      setTimeout(() => {
+        const mockTournaments = [
+          {
+            id: 1,
+            name: "Spring Championship 2025",
+            description: "Annual spring tournament with exciting prizes",
+            status: "active",
+            startDate: "2025-06-25T10:00:00Z",
+            endDate: "2025-06-27T18:00:00Z",
+            location: "Convention Center",
+            maxPlayers: 64,
+            currentPlayers: 48,
+            entryFee: 50,
+            prizePool: 5000,
+            format: "Single Elimination",
+            organizer: "Tournament Pro"
+          },
+          {
+            id: 2,
+            name: "Weekly Tournament #12",
+            description: "Regular weekly competition for all skill levels",
+            status: "completed",
+            startDate: "2025-06-20T14:00:00Z",
+            endDate: "2025-06-20T20:00:00Z",
+            location: "Gaming Lounge",
+            maxPlayers: 32,
+            currentPlayers: 32,
+            entryFee: 25,
+            prizePool: 800,
+            format: "Double Elimination",
+            organizer: "Gaming Club",
+            winner: "Alex Johnson"
+          },
+          {
+            id: 3,
+            name: "Beginner's Cup",
+            description: "Perfect tournament for new players to get started",
+            status: "upcoming",
+            startDate: "2025-07-01T12:00:00Z",
+            endDate: "2025-07-01T18:00:00Z",
+            location: "Community Center",
+            maxPlayers: 24,
+            currentPlayers: 16,
+            entryFee: 15,
+            prizePool: 500,
+            format: "Round Robin",
+            organizer: "Beginner's League"
+          },
+          {
+            id: 4,
+            name: "Pro League Finals",
+            description: "Championship finals for professional players",
+            status: "upcoming",
+            startDate: "2025-07-15T09:00:00Z",
+            endDate: "2025-07-17T21:00:00Z",
+            location: "Arena Stadium",
+            maxPlayers: 16,
+            currentPlayers: 12,
+            entryFee: 200,
+            prizePool: 25000,
+            format: "Single Elimination",
+            organizer: "Pro League"
+          },
+          {
+            id: 5,
+            name: "Summer Showdown",
+            description: "Mid-summer tournament with beach theme",
+            status: "registration",
+            startDate: "2025-08-10T11:00:00Z",
+            endDate: "2025-08-12T19:00:00Z",
+            location: "Beach Resort",
+            maxPlayers: 48,
+            currentPlayers: 8,
+            entryFee: 75,
+            prizePool: 3000,
+            format: "Swiss System",
+            organizer: "Summer Events"
+          }
+        ];
+        
+        setTournaments(mockTournaments);
+        setLoading(false);
+      }, 1000);
     } catch (error) {
-      console.error('Error fetching tournaments:', error)
-    } finally {
-      setLoading(false)
+      console.error('Error fetching tournaments:', error);
+      setLoading(false);
     }
-  }
+  };
 
-  const handleTournamentCreated = (newTournament) => {
-    setTournaments(prev => [newTournament, ...prev])
-    setShowCreateModal(false)
-  }
+  const filterAndSortTournaments = () => {
+    let filtered = tournaments.filter(tournament => {
+      const matchesSearch = tournament.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           tournament.description.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || tournament.status === statusFilter;
+      
+      return matchesSearch && matchesStatus;
+    });
 
-  const handleEditTournament = (tournament) => {
-    setSelectedTournament(tournament)
-    setShowEditModal(true)
-  }
+    // Sort tournaments
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'date':
+          return new Date(a.startDate) - new Date(b.startDate);
+        case 'name':
+          return a.name.localeCompare(b.name);
+        case 'players':
+          return b.currentPlayers - a.currentPlayers;
+        case 'prize':
+          return b.prizePool - a.prizePool;
+        default:
+          return 0;
+      }
+    });
 
-  const handleTournamentUpdated = () => {
-    setShowEditModal(false)
-    setSelectedTournament(null)
-    fetchTournaments() // Refresh the tournament list
-  }
+    setFilteredTournaments(filtered);
+  };
 
   const getStatusBadge = (status) => {
-    const statusConfig = {
-      upcoming: { className: 'badge badge-primary', label: 'Upcoming' },
-      in_progress: { className: 'badge badge-success', label: 'In Progress' },
-      completed: { className: 'badge badge-outline', label: 'Completed' }
-    }
-    
-    const config = statusConfig[status] || statusConfig.upcoming
-    return <span className={config.className}>{config.label}</span>
-  }
+    const badges = {
+      active: { class: "badge-success", text: "Active" },
+      completed: { class: "badge-primary", text: "Completed" },
+      upcoming: { class: "badge-warning", text: "Upcoming" },
+      registration: { class: "badge-outline", text: "Registration Open" }
+    };
+    return badges[status] || { class: "badge-outline", text: status };
+  };
 
-  const filteredTournaments = tournaments.filter(tournament => {
-    const matchesSearch = tournament.name.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = filterStatus === 'all' || tournament.status === filterStatus
-    return matchesSearch && matchesStatus
-  })
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getProgressPercentage = (current, max) => {
+    return Math.round((current / max) * 100);
+  };
 
   if (loading) {
     return (
-      <div className="container">
-        <div className="text-center py-8">
-          <div className="text-lg">Loading tournaments...</div>
+      <div className="container py-8">
+        <div className="loading">
+          <div className="spinner"></div>
+          <p className="ml-3">Loading tournaments...</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
-    <div className="container">
+    <div className="container py-8 animate-fade-in">
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex justify-between items-start mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-primary">Tournaments</h1>
-          <p className="text-secondary mt-2">Browse and join upcoming tournaments</p>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">Tournaments</h1>
+          <p className="text-gray-600 text-lg">
+            Discover and join exciting tournaments
+          </p>
         </div>
-        
-        {user.role === 'super_user' && (
-          <button 
-            className="btn btn-primary"
-            onClick={() => setShowCreateModal(true)}
-          >
-            <Plus className="h-4 w-4" />
-            <span>Create Tournament</span>
-          </button>
-        )}
+        <Link to="/tournaments/create" className="btn btn-primary btn-lg">
+          <Plus size={20} />
+          Create Tournament
+        </Link>
       </div>
 
-      {/* Search and Filter */}
+      {/* Search and Filters */}
       <div className="card mb-8">
         <div className="card-content">
-          <div className="flex flex-col md:flex-row gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Search */}
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-secondary" />
-                <input
-                  type="text"
-                  placeholder="Search tournaments..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  style={{
-                    width: '100%',
-                    paddingLeft: '40px',
-                    padding: '12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    fontSize: '16px',
-                    outline: 'none'
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = '#2563eb'}
-                  onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
-                />
-              </div>
+            <div className="search-container">
+              <Search className="search-icon" />
+              <input
+                type="text"
+                placeholder="Search tournaments..."
+                className="search-input"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
-            
-            {/* Filter */}
-            <div>
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                style={{
-                  padding: '12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '16px',
-                  outline: 'none',
-                  backgroundColor: 'white',
-                  minWidth: '150px'
-                }}
-                onFocus={(e) => e.target.style.borderColor = '#2563eb'}
-                onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
-              >
-                <option value="all">All Status</option>
-                <option value="upcoming">Upcoming</option>
-                <option value="in_progress">In Progress</option>
-                <option value="completed">Completed</option>
-              </select>
+
+            {/* Status Filter */}
+            <select
+              className="form-select"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="all">All Status</option>
+              <option value="upcoming">Upcoming</option>
+              <option value="active">Active</option>
+              <option value="registration">Registration Open</option>
+              <option value="completed">Completed</option>
+            </select>
+
+            {/* Sort By */}
+            <select
+              className="form-select"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+            >
+              <option value="date">Sort by Date</option>
+              <option value="name">Sort by Name</option>
+              <option value="players">Sort by Players</option>
+              <option value="prize">Sort by Prize Pool</option>
+            </select>
+
+            {/* Results Count */}
+            <div className="flex items-center text-gray-600">
+              <Filter size={16} className="mr-2" />
+              {filteredTournaments.length} tournament{filteredTournaments.length !== 1 ? 's' : ''}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Tournament Grid */}
+      {/* Tournaments Grid */}
       {filteredTournaments.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredTournaments.map((tournament) => (
-            <div key={tournament.tournament_id} className="card">
-              <div className="card-header">
-                <div className="flex justify-between items-start">
-                  <h3 className="card-title">{tournament.name}</h3>
-                  {getStatusBadge(tournament.status)}
-                </div>
-                {tournament.description && (
-                  <p className="card-description">{tournament.description}</p>
-                )}
-              </div>
-              
-              <div className="card-content">
-                <div className="space-y-3 mb-4">
-                  <div className="flex items-center text-sm text-secondary">
-                    <Calendar className="h-4 w-4 mr-2" />
-                    <span>{new Date(tournament.date).toLocaleDateString()}</span>
-                  </div>
-                  <div className="flex items-center text-sm text-secondary">
-                    <Users className="h-4 w-4 mr-2" />
-                    <span>{tournament.enrollment_count || 0} players enrolled</span>
-                  </div>
-                  <div className="flex items-center text-sm text-secondary">
-                    <Trophy className="h-4 w-4 mr-2" />
-                    <span>Max: {tournament.max_players} players</span>
-                  </div>
-                  {tournament.entry_fee && (
-                    <div className="flex items-center text-sm text-secondary">
-                      <span className="font-medium">Entry Fee: ${tournament.entry_fee}</span>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {filteredTournaments.map((tournament, index) => (
+            <div 
+              key={tournament.id} 
+              className="tournament-card animate-slide-in"
+              style={{ animationDelay: `${index * 0.1}s` }}
+            >
+              <div className="tournament-header">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex-1">
+                    <h3 className="tournament-title">{tournament.name}</h3>
+                    <p className="text-gray-600 text-sm mb-3">{tournament.description}</p>
+                    
+                    <div className="tournament-meta">
+                      <div className="tournament-meta-item">
+                        <Calendar size={16} />
+                        {formatDate(tournament.startDate)}
+                      </div>
+                      <div className="tournament-meta-item">
+                        <MapPin size={16} />
+                        {tournament.location}
+                      </div>
+                      <div className="tournament-meta-item">
+                        <Users size={16} />
+                        {tournament.currentPlayers}/{tournament.maxPlayers} players
+                      </div>
                     </div>
-                  )}
-                  {tournament.bracket && (
-                    <div className="flex items-center text-sm text-green-600">
-                      <Trophy className="h-4 w-4 mr-2" />
-                      <span>Bracket Generated</span>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="space-y-2">
-                  <Link to={`/tournaments/${tournament.tournament_id}`}>
-                    <button className="btn btn-outline w-full">
-                      View Details
+                  </div>
+                  
+                  <div className="flex flex-col items-end gap-2">
+                    <span className={`badge ${getStatusBadge(tournament.status).class}`}>
+                      {getStatusBadge(tournament.status).text}
+                    </span>
+                    <button className="btn btn-outline btn-sm">
+                      <MoreVertical size={16} />
                     </button>
+                  </div>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="mb-4">
+                  <div className="flex justify-between text-sm text-gray-600 mb-1">
+                    <span>Registration Progress</span>
+                    <span>{getProgressPercentage(tournament.currentPlayers, tournament.maxPlayers)}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-primary-500 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${getProgressPercentage(tournament.currentPlayers, tournament.maxPlayers)}%` }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="tournament-content">
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="text-center p-3 bg-gray-50 rounded-lg">
+                    <DollarSign size={20} className="mx-auto text-gray-600 mb-1" />
+                    <div className="font-semibold text-gray-900">${tournament.entryFee}</div>
+                    <div className="text-xs text-gray-600">Entry Fee</div>
+                  </div>
+                  <div className="text-center p-3 bg-gray-50 rounded-lg">
+                    <Trophy size={20} className="mx-auto text-gray-600 mb-1" />
+                    <div className="font-semibold text-gray-900">${tournament.prizePool.toLocaleString()}</div>
+                    <div className="text-xs text-gray-600">Prize Pool</div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
+                  <span>Format: <strong>{tournament.format}</strong></span>
+                  <span>by {tournament.organizer}</span>
+                </div>
+
+                {tournament.winner && (
+                  <div className="bg-success-50 border border-success-200 rounded-lg p-3 mb-4">
+                    <div className="flex items-center gap-2 text-success-700">
+                      <Trophy size={16} />
+                      <span className="font-medium">Winner: {tournament.winner}</span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="tournament-actions">
+                  <Link 
+                    to={`/tournaments/${tournament.id}`} 
+                    className="btn btn-primary flex-1"
+                  >
+                    <Eye size={16} />
+                    View Details
                   </Link>
                   
-                  {user.role === 'super_user' && (
-                    <button 
-                      className="btn btn-secondary w-full"
-                      onClick={() => handleEditTournament(tournament)}
-                    >
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit Tournament
+                  {tournament.status === 'registration' || tournament.status === 'upcoming' ? (
+                    <button className="btn btn-success">
+                      <Plus size={16} />
+                      Join
                     </button>
-                  )}
+                  ) : null}
+                  
+                  <button className="btn btn-outline">
+                    <Edit size={16} />
+                  </button>
                 </div>
               </div>
             </div>
           ))}
         </div>
       ) : (
-        <div className="card">
-          <div className="card-content">
-            <div className="empty-state">
-              {searchTerm || filterStatus !== 'all' 
-                ? 'No tournaments match your search criteria.' 
-                : 'No tournaments available at the moment.'}
-            </div>
-          </div>
+        <div className="empty-state">
+          <Trophy className="empty-state-icon" />
+          <h3 className="empty-state-title">No tournaments found</h3>
+          <p className="empty-state-description">
+            {searchTerm || statusFilter !== 'all' 
+              ? 'Try adjusting your search or filters'
+              : 'Be the first to create a tournament!'
+            }
+          </p>
+          <Link to="/tournaments/create" className="btn btn-primary">
+            <Plus size={16} />
+            Create Tournament
+          </Link>
         </div>
       )}
-
-      {/* Create Tournament Modal */}
-      <CreateTournamentModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onTournamentCreated={handleTournamentCreated}
-        user={user}
-      />
-
-      {/* Edit Tournament Modal */}
-      <EditTournamentModal
-        isOpen={showEditModal}
-        onClose={() => {
-          setShowEditModal(false)
-          setSelectedTournament(null)
-        }}
-        onTournamentUpdated={handleTournamentUpdated}
-        tournament={selectedTournament}
-        user={user}
-      />
     </div>
-  )
-}
+  );
+};
 
-export default Tournaments
-
+export default Tournaments;

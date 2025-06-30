@@ -1,225 +1,364 @@
-import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import { Button } from './ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
-import { Badge } from './ui/badge'
-import { Trophy, Calendar, Users, TrendingUp, Plus } from 'lucide-react'
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { 
+  Trophy, 
+  Users, 
+  Calendar, 
+  TrendingUp,
+  Plus,
+  Clock,
+  Award,
+  Target,
+  ArrowRight,
+  Activity
+} from 'lucide-react';
 
-const Dashboard = ({ user }) => {
-  const [tournaments, setTournaments] = useState([])
-  const [playerTournaments, setPlayerTournaments] = useState({ current_tournaments: [], past_tournaments: [] })
-  const [loading, setLoading] = useState(true)
+const Dashboard = () => {
+  const [stats, setStats] = useState({
+    totalTournaments: 0,
+    activeTournaments: 0,
+    totalPlayers: 0,
+    completedMatches: 0
+  });
+  
+  const [recentTournaments, setRecentTournaments] = useState([]);
+  const [upcomingMatches, setUpcomingMatches] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchDashboardData()
-  }, [user])
+    fetchDashboardData();
+  }, []);
 
   const fetchDashboardData = async () => {
     try {
-      // Fetch all tournaments
-      const tournamentsResponse = await fetch('https://77h9ikcj6vgw.manus.space/api/tournaments')
-      const tournamentsData = await tournamentsResponse.json()
+      setLoading(true);
       
-      // Fetch player's tournaments
-      const playerTournamentsResponse = await fetch(`https://77h9ikcj6vgw.manus.space/api/players/${user.player_id}/tournaments`)
-      const playerTournamentsData = await playerTournamentsResponse.json()
-      
-      setTournaments(tournamentsData.tournaments || [])
-      setPlayerTournaments(playerTournamentsData)
+      // Simulate API calls with mock data
+      setTimeout(() => {
+        setStats({
+          totalTournaments: 24,
+          activeTournaments: 8,
+          totalPlayers: 156,
+          completedMatches: 89
+        });
+
+        setRecentTournaments([
+          {
+            id: 1,
+            name: "Spring Championship 2025",
+            status: "active",
+            players: 32,
+            startDate: "2025-06-25",
+            prize: "$5,000"
+          },
+          {
+            id: 2,
+            name: "Weekly Tournament #12",
+            status: "completed",
+            players: 16,
+            startDate: "2025-06-20",
+            winner: "Alex Johnson"
+          },
+          {
+            id: 3,
+            name: "Beginner's Cup",
+            status: "upcoming",
+            players: 24,
+            startDate: "2025-07-01",
+            prize: "$1,000"
+          }
+        ]);
+
+        setUpcomingMatches([
+          {
+            id: 1,
+            tournament: "Spring Championship 2025",
+            player1: "John Doe",
+            player2: "Jane Smith",
+            time: "14:30",
+            round: "Quarter Final"
+          },
+          {
+            id: 2,
+            tournament: "Weekly Tournament #13",
+            player1: "Mike Wilson",
+            player2: "Sarah Davis",
+            time: "16:00",
+            round: "Semi Final"
+          }
+        ]);
+
+        setLoading(false);
+      }, 1000);
     } catch (error) {
-      console.error('Error fetching dashboard data:', error)
-    } finally {
-      setLoading(false)
+      console.error('Error fetching dashboard data:', error);
+      setLoading(false);
     }
-  }
+  };
+
+  const statCards = [
+    {
+      title: "Total Tournaments",
+      value: stats.totalTournaments,
+      icon: Trophy,
+      color: "primary",
+      change: "+12%"
+    },
+    {
+      title: "Active Tournaments",
+      value: stats.activeTournaments,
+      icon: Activity,
+      color: "success",
+      change: "+5%"
+    },
+    {
+      title: "Total Players",
+      value: stats.totalPlayers,
+      icon: Users,
+      color: "warning",
+      change: "+18%"
+    },
+    {
+      title: "Completed Matches",
+      value: stats.completedMatches,
+      icon: Target,
+      color: "error",
+      change: "+23%"
+    }
+  ];
 
   const getStatusBadge = (status) => {
-    const statusConfig = {
-      upcoming: { variant: 'secondary', label: 'Upcoming' },
-      in_progress: { variant: 'default', label: 'In Progress' },
-      completed: { variant: 'outline', label: 'Completed' }
-    }
-    
-    const config = statusConfig[status] || statusConfig.upcoming
-    return <Badge variant={config.variant}>{config.label}</Badge>
-  }
+    const badges = {
+      active: "badge-success",
+      completed: "badge-primary",
+      upcoming: "badge-warning"
+    };
+    return badges[status] || "badge-outline";
+  };
+
+  const getStatusText = (status) => {
+    const texts = {
+      active: "Active",
+      completed: "Completed",
+      upcoming: "Upcoming"
+    };
+    return texts[status] || status;
+  };
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">Loading dashboard...</div>
+      <div className="container py-8">
+        <div className="loading">
+          <div className="spinner"></div>
+          <p className="ml-3">Loading dashboard...</p>
+        </div>
       </div>
-    )
+    );
   }
 
-  const upcomingTournaments = tournaments.filter(t => t.status === 'upcoming').slice(0, 3)
-  const activeTournaments = tournaments.filter(t => t.status === 'in_progress').slice(0, 3)
-
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container py-8 animate-fade-in">
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex justify-between items-start mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground">Welcome back, {user.name}!</p>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+            Welcome back! 👋
+          </h1>
+          <p className="text-gray-600 text-lg">
+            Here's what's happening with your tournaments today.
+          </p>
         </div>
-        <Link to="/tournaments">
-          <Button className="flex items-center space-x-2">
-            <Plus className="h-4 w-4" />
-            <span>Create Tournament</span>
-          </Button>
+        <Link to="/tournaments" className="btn btn-primary btn-lg">
+          <Plus size={20} />
+          Create Tournament
         </Link>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Current Tournaments</CardTitle>
-            <Trophy className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{playerTournaments.current_tournaments?.length || 0}</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Past Tournaments</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{playerTournaments.past_tournaments?.length || 0}</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Wins</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {playerTournaments.past_tournaments?.reduce((total, t) => total + (t.wins || 0), 0) || 0}
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {statCards.map((stat, index) => (
+          <div key={index} className="stat-card animate-slide-in" style={{ animationDelay: `${index * 0.1}s` }}>
+            <div className="stat-icon">
+              <stat.icon size={24} />
             </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Tournaments</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{activeTournaments.length}</div>
-          </CardContent>
-        </Card>
+            <div className="stat-number">{stat.value}</div>
+            <div className="stat-label">{stat.title}</div>
+            <div className="text-xs text-success-600 font-medium mt-2">
+              {stat.change} from last month
+            </div>
+          </div>
+        ))}
       </div>
 
+      {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* My Current Tournaments */}
-        <Card>
-          <CardHeader>
-            <CardTitle>My Current Tournaments</CardTitle>
-            <CardDescription>Tournaments you're currently participating in</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {playerTournaments.current_tournaments?.length > 0 ? (
+        {/* Recent Tournaments */}
+        <div className="card">
+          <div className="card-header">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="card-title">
+                  <Calendar size={20} />
+                  Recent Tournaments
+                </h3>
+                <p className="card-description">
+                  Latest tournament activity and results
+                </p>
+              </div>
+              <Link to="/tournaments" className="btn btn-outline btn-sm">
+                View All
+                <ArrowRight size={16} />
+              </Link>
+            </div>
+          </div>
+          <div className="card-content">
+            {recentTournaments.length > 0 ? (
               <div className="space-y-4">
-                {playerTournaments.current_tournaments.map((tournament) => (
-                  <div key={tournament.tournament_id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <h3 className="font-medium">{tournament.name}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(tournament.date).toLocaleDateString()}
-                      </p>
+                {recentTournaments.map((tournament) => (
+                  <div key={tournament.id} className="tournament-card">
+                    <div className="tournament-header">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="tournament-title">{tournament.name}</h4>
+                          <div className="tournament-meta">
+                            <div className="tournament-meta-item">
+                              <Users size={16} />
+                              {tournament.players} players
+                            </div>
+                            <div className="tournament-meta-item">
+                              <Clock size={16} />
+                              {new Date(tournament.startDate).toLocaleDateString()}
+                            </div>
+                          </div>
+                        </div>
+                        <span className={`badge ${getStatusBadge(tournament.status)}`}>
+                          {getStatusText(tournament.status)}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      {getStatusBadge(tournament.status)}
-                      <Link to={`/tournaments/${tournament.tournament_id}`}>
-                        <Button variant="outline" size="sm">View</Button>
-                      </Link>
+                    <div className="tournament-content">
+                      {tournament.status === 'completed' && tournament.winner && (
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <Award size={16} />
+                          Winner: <span className="font-medium">{tournament.winner}</span>
+                        </div>
+                      )}
+                      {tournament.prize && (
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <Trophy size={16} />
+                          Prize: <span className="font-medium">{tournament.prize}</span>
+                        </div>
+                      )}
+                      <div className="tournament-actions">
+                        <Link 
+                          to={`/tournaments/${tournament.id}`} 
+                          className="btn btn-primary btn-sm"
+                        >
+                          View Details
+                        </Link>
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-muted-foreground text-center py-8">
-                You're not currently enrolled in any tournaments.
-              </p>
+              <div className="empty-state">
+                <Calendar className="empty-state-icon" />
+                <h3 className="empty-state-title">No tournaments yet</h3>
+                <p className="empty-state-description">
+                  Create your first tournament to get started
+                </p>
+                <Link to="/tournaments" className="btn btn-primary">
+                  <Plus size={16} />
+                  Create Tournament
+                </Link>
+              </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        {/* Upcoming Tournaments */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Upcoming Tournaments</CardTitle>
-            <CardDescription>Join these upcoming tournaments</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {upcomingTournaments.length > 0 ? (
+        {/* Upcoming Matches */}
+        <div className="card">
+          <div className="card-header">
+            <div>
+              <h3 className="card-title">
+                <Clock size={20} />
+                Upcoming Matches
+              </h3>
+              <p className="card-description">
+                Matches scheduled for today
+              </p>
+            </div>
+          </div>
+          <div className="card-content">
+            {upcomingMatches.length > 0 ? (
               <div className="space-y-4">
-                {upcomingTournaments.map((tournament) => (
-                  <div key={tournament.tournament_id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <h3 className="font-medium">{tournament.name}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(tournament.date).toLocaleDateString()} • {tournament.enrollment_count} players
-                      </p>
+                {upcomingMatches.map((match) => (
+                  <div key={match.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h4 className="font-semibold text-gray-900">{match.tournament}</h4>
+                        <p className="text-sm text-gray-600">{match.round}</p>
+                      </div>
+                      <span className="badge badge-primary">{match.time}</span>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      {getStatusBadge(tournament.status)}
-                      <Link to={`/tournaments/${tournament.tournament_id}`}>
-                        <Button variant="outline" size="sm">Join</Button>
-                      </Link>
+                    <div className="flex items-center justify-center gap-4">
+                      <div className="text-center">
+                        <div className="font-medium text-gray-900">{match.player1}</div>
+                      </div>
+                      <div className="text-gray-400 font-bold">VS</div>
+                      <div className="text-center">
+                        <div className="font-medium text-gray-900">{match.player2}</div>
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-muted-foreground text-center py-8">
-                No upcoming tournaments available.
-              </p>
+              <div className="empty-state">
+                <Clock className="empty-state-icon" />
+                <h3 className="empty-state-title">No matches today</h3>
+                <p className="empty-state-description">
+                  Check back later for upcoming matches
+                </p>
+              </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
-      {/* Recent Tournament History */}
-      {playerTournaments.past_tournaments?.length > 0 && (
-        <Card className="mt-8">
-          <CardHeader>
-            <CardTitle>Recent Tournament History</CardTitle>
-            <CardDescription>Your performance in past tournaments</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {playerTournaments.past_tournaments.slice(0, 5).map((tournament) => (
-                <div key={tournament.tournament_id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div>
-                    <h3 className="font-medium">{tournament.name}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(tournament.date).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm font-medium">
-                      {tournament.wins}W - {tournament.losses}L
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Score: {tournament.total_score}
-                    </div>
-                  </div>
-                </div>
-              ))}
+      {/* Quick Actions */}
+      <div className="mt-8">
+        <div className="card">
+          <div className="card-header">
+            <h3 className="card-title">
+              <TrendingUp size={20} />
+              Quick Actions
+            </h3>
+            <p className="card-description">
+              Common tasks and shortcuts
+            </p>
+          </div>
+          <div className="card-content">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Link to="/tournaments" className="btn btn-outline btn-lg w-full">
+                <Plus size={20} />
+                Create Tournament
+              </Link>
+              <Link to="/tournaments" className="btn btn-outline btn-lg w-full">
+                <Users size={20} />
+                Manage Players
+              </Link>
+              <Link to="/profile" className="btn btn-outline btn-lg w-full">
+                <Award size={20} />
+                View Statistics
+              </Link>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        </div>
+      </div>
     </div>
-  )
-}
+  );
+};
 
-export default Dashboard
-
+export default Dashboard;
