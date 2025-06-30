@@ -1,310 +1,481 @@
 import React, { useState } from 'react'
 
-const PlayerProfile = () => {
+const PlayerProfile = ({ user = { name: 'John Doe', email: 'john@example.com' } }) => {
   const [activeTab, setActiveTab] = useState('overview')
   const [isEditing, setIsEditing] = useState(false)
   const [profileData, setProfileData] = useState({
-    name: 'John Doe',
-    email: 'john.doe@example.com',
+    name: user.name || 'John Doe',
+    email: user.email || 'john@example.com',
     phone: '+1 (555) 123-4567',
-    location: 'New York, NY',
-    bio: 'Passionate backgammon player with 5 years of experience.',
+    location: 'New York, USA',
+    bio: 'Passionate backgammon player with 5+ years of experience. Love competitive tournaments and helping new players learn the game.',
     rank: 'Gold',
-    totalTournaments: 15,
-    wins: 12,
-    winRate: 80
+    level: 15,
+    experience: 2850,
+    nextLevelExp: 3000
   })
 
-  const getRankIcon = (rank) => {
-    const icons = {
-      'Bronze': '🥉',
-      'Silver': '🥈', 
-      'Gold': '🥇',
-      'Platinum': '💎',
-      'Diamond': '💍'
-    }
-    return icons[rank] || '🏆'
+  const playerStats = {
+    totalGames: 127,
+    wins: 89,
+    losses: 38,
+    winRate: 70,
+    currentStreak: 5,
+    bestStreak: 12,
+    totalTournaments: 23,
+    tournamentsWon: 8,
+    averageScore: 156,
+    totalPoints: 19812
   }
 
-  const getRankColor = (rank) => {
-    const colors = {
-      'Bronze': '#cd7f32',
-      'Silver': '#c0c0c0',
-      'Gold': '#ffd700',
-      'Platinum': '#e5e4e2',
-      'Diamond': '#b9f2ff'
-    }
-    return colors[rank] || '#ffd700'
-  }
-
-  const tabs = [
-    { id: 'overview', label: 'Overview' },
-    { id: 'statistics', label: 'Statistics' },
-    { id: 'tournaments', label: 'Tournaments' },
-    { id: 'achievements', label: 'Achievements' },
-    { id: 'settings', label: 'Settings' }
+  const achievements = [
+    { id: 1, name: 'First Victory', description: 'Win your first game', icon: '🏆', earned: true, date: '2024-01-15' },
+    { id: 2, name: 'Tournament Champion', description: 'Win a tournament', icon: '👑', earned: true, date: '2024-03-22' },
+    { id: 3, name: 'Winning Streak', description: 'Win 10 games in a row', icon: '🔥', earned: true, date: '2024-05-10' },
+    { id: 4, name: 'Master Player', description: 'Reach Gold rank', icon: '🥇', earned: true, date: '2024-06-15' },
+    { id: 5, name: 'Social Player', description: 'Play 100 games', icon: '🤝', earned: true, date: '2024-06-20' },
+    { id: 6, name: 'Legendary', description: 'Win 5 tournaments', icon: '⭐', earned: false, progress: 3, total: 5 }
   ]
 
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case 'overview':
-        return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            {/* Quick Stats */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-              <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', border: '1px solid #e5e7eb', textAlign: 'center' }}>
-                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#111827' }}>{profileData.totalTournaments}</div>
-                <div style={{ fontSize: '14px', color: '#6b7280' }}>Total Tournaments</div>
-              </div>
-              <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', border: '1px solid #e5e7eb', textAlign: 'center' }}>
-                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#16a34a' }}>{profileData.wins}</div>
-                <div style={{ fontSize: '14px', color: '#6b7280' }}>Wins</div>
-              </div>
-              <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', border: '1px solid #e5e7eb', textAlign: 'center' }}>
-                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#2563eb' }}>{profileData.winRate}%</div>
-                <div style={{ fontSize: '14px', color: '#6b7280' }}>Win Rate</div>
-              </div>
-            </div>
+  const recentTournaments = [
+    { id: 1, name: 'Spring Championship', date: '2024-06-15', position: 1, players: 16, prize: '$200' },
+    { id: 2, name: 'Weekly Pro League', date: '2024-06-08', position: 3, players: 8, prize: '$50' },
+    { id: 3, name: 'Beginner\'s Cup', date: '2024-05-25', position: 2, players: 12, prize: '$75' }
+  ]
 
-            {/* Recent Activity */}
-            <div style={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', padding: '24px' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginBottom: '16px' }}>Recent Activity</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '6px' }}>
-                  <span style={{ fontSize: '16px' }}>🏆</span>
-                  <div>
-                    <div style={{ fontSize: '14px', fontWeight: '500', color: '#111827' }}>Won Spring Championship</div>
-                    <div style={{ fontSize: '12px', color: '#6b7280' }}>2 days ago</div>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '6px' }}>
-                  <span style={{ fontSize: '16px' }}>📈</span>
-                  <div>
-                    <div style={{ fontSize: '14px', fontWeight: '500', color: '#111827' }}>Rank promoted to Gold</div>
-                    <div style={{ fontSize: '12px', color: '#6b7280' }}>1 week ago</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )
-
-      case 'statistics':
-        return (
-          <div style={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', padding: '24px' }}>
-            <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginBottom: '16px' }}>Performance Statistics</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
-              <div>
-                <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '8px' }}>Win Rate</div>
-                <div style={{ backgroundColor: '#f3f4f6', borderRadius: '8px', height: '8px', overflow: 'hidden' }}>
-                  <div style={{ backgroundColor: '#16a34a', height: '100%', width: `${profileData.winRate}%` }}></div>
-                </div>
-                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>{profileData.winRate}%</div>
-              </div>
-              <div>
-                <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '8px' }}>Tournament Participation</div>
-                <div style={{ backgroundColor: '#f3f4f6', borderRadius: '8px', height: '8px', overflow: 'hidden' }}>
-                  <div style={{ backgroundColor: '#2563eb', height: '100%', width: '75%' }}></div>
-                </div>
-                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>75% active</div>
-              </div>
-            </div>
-          </div>
-        )
-
-      case 'tournaments':
-        return (
-          <div style={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', padding: '24px' }}>
-            <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginBottom: '16px' }}>Tournament History</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
-                <div>
-                  <div style={{ fontSize: '16px', fontWeight: '500', color: '#111827' }}>Spring Championship</div>
-                  <div style={{ fontSize: '14px', color: '#6b7280' }}>March 2025 • 1st Place</div>
-                </div>
-                <span style={{ backgroundColor: '#dcfce7', color: '#166534', padding: '4px 12px', borderRadius: '12px', fontSize: '12px' }}>Won</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
-                <div>
-                  <div style={{ fontSize: '16px', fontWeight: '500', color: '#111827' }}>Weekly Tournament</div>
-                  <div style={{ fontSize: '14px', color: '#6b7280' }}>February 2025 • 3rd Place</div>
-                </div>
-                <span style={{ backgroundColor: '#dbeafe', color: '#1e40af', padding: '4px 12px', borderRadius: '12px', fontSize: '12px' }}>Placed</span>
-              </div>
-            </div>
-          </div>
-        )
-
-      case 'achievements':
-        return (
-          <div style={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', padding: '24px' }}>
-            <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginBottom: '16px' }}>Achievements</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-              <div style={{ padding: '16px', border: '1px solid #e5e7eb', borderRadius: '8px', textAlign: 'center' }}>
-                <div style={{ fontSize: '24px', marginBottom: '8px' }}>🏆</div>
-                <div style={{ fontSize: '14px', fontWeight: '500', color: '#111827' }}>First Victory</div>
-                <div style={{ fontSize: '12px', color: '#6b7280' }}>Win your first tournament</div>
-              </div>
-              <div style={{ padding: '16px', border: '1px solid #e5e7eb', borderRadius: '8px', textAlign: 'center' }}>
-                <div style={{ fontSize: '24px', marginBottom: '8px' }}>🔥</div>
-                <div style={{ fontSize: '14px', fontWeight: '500', color: '#111827' }}>Winning Streak</div>
-                <div style={{ fontSize: '12px', color: '#6b7280' }}>Win 5 games in a row</div>
-              </div>
-            </div>
-          </div>
-        )
-
-      case 'settings':
-        return (
-          <div style={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', padding: '24px' }}>
-            <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginBottom: '16px' }}>Account Settings</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#111827', marginBottom: '8px' }}>
-                  Email Notifications
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                  <input type="checkbox" defaultChecked />
-                  <span style={{ fontSize: '14px', color: '#6b7280' }}>Receive tournament updates</span>
-                </label>
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#111827', marginBottom: '8px' }}>
-                  Privacy
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                  <input type="checkbox" defaultChecked />
-                  <span style={{ fontSize: '14px', color: '#6b7280' }}>Make profile public</span>
-                </label>
-              </div>
-            </div>
-          </div>
-        )
-
-      default:
-        return null
+  const getRankInfo = (rank) => {
+    const ranks = {
+      Bronze: { icon: '🥉', color: 'from-amber-600 to-amber-700', bgColor: 'bg-amber-50' },
+      Silver: { icon: '🥈', color: 'from-gray-400 to-gray-500', bgColor: 'bg-gray-50' },
+      Gold: { icon: '🥇', color: 'from-yellow-400 to-yellow-500', bgColor: 'bg-yellow-50' },
+      Platinum: { icon: '💎', color: 'from-blue-400 to-blue-500', bgColor: 'bg-blue-50' },
+      Diamond: { icon: '💠', color: 'from-purple-400 to-purple-500', bgColor: 'bg-purple-50' }
     }
+    return ranks[rank] || ranks.Bronze
   }
 
-  return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 16px' }}>
-      {/* Header */}
-      <div style={{ paddingTop: '32px', marginBottom: '32px' }}>
-        <h1 style={{ fontSize: '30px', fontWeight: 'bold', color: '#111827', margin: 0 }}>Player Profile</h1>
-        <p style={{ color: '#6b7280', margin: '8px 0 0 0' }}>Manage your profile and view your tournament history</p>
-      </div>
+  const rankInfo = getRankInfo(profileData.rank)
+  const experiencePercentage = (profileData.experience / profileData.nextLevelExp) * 100
 
-      {/* Profile Header */}
-      <div style={{
-        backgroundColor: 'white',
-        borderRadius: '8px',
-        border: '1px solid #e5e7eb',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-        padding: '24px',
-        marginBottom: '32px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '24px', marginBottom: '24px' }}>
-          {/* Profile Picture */}
-          <div style={{
-            width: '80px',
-            height: '80px',
-            borderRadius: '50%',
-            backgroundColor: '#f3f4f6',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '32px',
-            color: '#6b7280'
-          }}>
-            👤
-          </div>
-          
-          {/* Profile Info */}
-          <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-              <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#111827', margin: 0 }}>{profileData.name}</h2>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                backgroundColor: getRankColor(profileData.rank),
-                color: 'white',
-                padding: '4px 12px',
-                borderRadius: '12px',
-                fontSize: '14px',
-                fontWeight: '500'
-              }}>
-                <span>{getRankIcon(profileData.rank)}</span>
-                <span>{profileData.rank} Rank</span>
+  const tabs = [
+    { id: 'overview', name: 'Overview', icon: '📊' },
+    { id: 'statistics', name: 'Statistics', icon: '📈' },
+    { id: 'tournaments', name: 'Tournaments', icon: '🏆' },
+    { id: 'achievements', name: 'Achievements', icon: '🏅' },
+    { id: 'settings', name: 'Settings', icon: '⚙️' }
+  ]
+
+  return (
+    <div className="page-wrapper">
+      <div className="main-content">
+        <div className="container">
+          {/* Beautiful Profile Header */}
+          <div className="card mb-8 animate-fade-in">
+            <div className="card-content">
+              <div className="flex flex-col md:flex-row gap-6">
+                {/* Profile Picture */}
+                <div className="flex-shrink-0">
+                  <div className="relative">
+                    <div className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-4xl font-bold shadow-lg">
+                      {profileData.name.split(' ').map(n => n[0]).join('')}
+                    </div>
+                    <div className={`absolute -bottom-2 -right-2 w-12 h-12 rounded-full ${rankInfo.bgColor} flex items-center justify-center shadow-lg border-4 border-white`}>
+                      <span className="text-2xl">{rankInfo.icon}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Profile Info */}
+                <div className="flex-1">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h1 className="text-3xl font-bold text-gray-900 mb-2">{profileData.name}</h1>
+                      <div className="flex items-center gap-4 mb-3">
+                        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r ${rankInfo.color} text-white font-semibold`}>
+                          <span>{rankInfo.icon}</span>
+                          <span>{profileData.rank} Rank</span>
+                        </div>
+                        <div className="text-gray-600">
+                          Level {profileData.level}
+                        </div>
+                      </div>
+                      <p className="text-gray-600 max-w-2xl">{profileData.bio}</p>
+                    </div>
+                    <button
+                      onClick={() => setIsEditing(!isEditing)}
+                      className="btn btn-outline btn-sm"
+                    >
+                      {isEditing ? 'Cancel' : 'Edit Profile'}
+                    </button>
+                  </div>
+
+                  {/* Experience Bar */}
+                  <div className="mb-4">
+                    <div className="flex justify-between text-sm text-gray-600 mb-2">
+                      <span>Experience</span>
+                      <span>{profileData.experience}/{profileData.nextLevelExp} XP</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-3">
+                      <div 
+                        className="bg-gradient-to-r from-blue-500 to-purple-600 h-3 rounded-full transition-all duration-500"
+                        style={{ width: `${experiencePercentage}%` }}
+                      ></div>
+                    </div>
+                  </div>
+
+                  {/* Quick Stats */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-blue-600">{playerStats.wins}</div>
+                      <div className="text-sm text-gray-500">Wins</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-600">{playerStats.winRate}%</div>
+                      <div className="text-sm text-gray-500">Win Rate</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-purple-600">{playerStats.tournamentsWon}</div>
+                      <div className="text-sm text-gray-500">Tournaments Won</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-orange-600">{playerStats.currentStreak}</div>
+                      <div className="text-sm text-gray-500">Current Streak</div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-            <p style={{ color: '#6b7280', margin: '0 0 8px 0' }}>{profileData.email}</p>
-            <p style={{ color: '#6b7280', margin: 0 }}>{profileData.location}</p>
           </div>
-          
-          {/* Edit Button */}
-          <button
-            onClick={() => setIsEditing(!isEditing)}
-            style={{
-              backgroundColor: isEditing ? '#16a34a' : '#2563eb',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              padding: '8px 16px',
-              fontSize: '14px',
-              cursor: 'pointer'
-            }}
-          >
-            {isEditing ? 'Save' : 'Edit Profile'}
-          </button>
-        </div>
-        
-        {/* Bio */}
-        {isEditing ? (
-          <textarea
-            value={profileData.bio}
-            onChange={(e) => setProfileData({...profileData, bio: e.target.value})}
-            style={{
-              width: '100%',
-              padding: '12px',
-              border: '1px solid #d1d5db',
-              borderRadius: '6px',
-              fontSize: '14px',
-              resize: 'vertical',
-              minHeight: '80px'
-            }}
-          />
-        ) : (
-          <p style={{ color: '#6b7280', fontSize: '14px', lineHeight: '1.5' }}>{profileData.bio}</p>
-        )}
-      </div>
 
-      {/* Tabs */}
-      <div style={{ marginBottom: '24px' }}>
-        <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb' }}>
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              style={{
-                padding: '12px 24px',
-                border: 'none',
-                backgroundColor: 'transparent',
-                color: activeTab === tab.id ? '#2563eb' : '#6b7280',
-                borderBottom: activeTab === tab.id ? '2px solid #2563eb' : '2px solid transparent',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '500'
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
+          {/* Beautiful Tabs */}
+          <div className="card animate-fade-in" style={{ animationDelay: '0.1s' }}>
+            <div className="card-header">
+              <div className="flex flex-wrap gap-2">
+                {tabs.map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`btn btn-sm ${activeTab === tab.id ? 'btn-primary' : 'btn-outline'}`}
+                  >
+                    <span>{tab.icon}</span>
+                    <span>{tab.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="card-content">
+              {/* Overview Tab */}
+              {activeTab === 'overview' && (
+                <div className="animate-fade-in">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* Contact Information */}
+                    <div>
+                      <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                        <span>📞</span>
+                        Contact Information
+                      </h3>
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3">
+                          <span className="text-gray-500">📧</span>
+                          <span>{profileData.email}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-gray-500">📱</span>
+                          <span>{profileData.phone}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-gray-500">📍</span>
+                          <span>{profileData.location}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Recent Activity */}
+                    <div>
+                      <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                        <span>⚡</span>
+                        Recent Activity
+                      </h3>
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
+                          <span className="text-green-600">🏆</span>
+                          <div>
+                            <div className="font-medium">Won Spring Championship</div>
+                            <div className="text-sm text-gray-500">2 days ago</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+                          <span className="text-blue-600">🎯</span>
+                          <div>
+                            <div className="font-medium">Achieved 5-game win streak</div>
+                            <div className="text-sm text-gray-500">1 week ago</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg">
+                          <span className="text-purple-600">⭐</span>
+                          <div>
+                            <div className="font-medium">Reached Level 15</div>
+                            <div className="text-sm text-gray-500">2 weeks ago</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Statistics Tab */}
+              {activeTab === 'statistics' && (
+                <div className="animate-fade-in">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="stat-card">
+                      <div className="stat-icon">
+                        <span className="text-xl">🎮</span>
+                      </div>
+                      <div className="stat-number">{playerStats.totalGames}</div>
+                      <div className="stat-label">Total Games</div>
+                    </div>
+                    
+                    <div className="stat-card">
+                      <div className="stat-icon">
+                        <span className="text-xl">🏆</span>
+                      </div>
+                      <div className="stat-number">{playerStats.wins}</div>
+                      <div className="stat-label">Games Won</div>
+                    </div>
+                    
+                    <div className="stat-card">
+                      <div className="stat-icon">
+                        <span className="text-xl">📈</span>
+                      </div>
+                      <div className="stat-number">{playerStats.winRate}%</div>
+                      <div className="stat-label">Win Rate</div>
+                    </div>
+                    
+                    <div className="stat-card">
+                      <div className="stat-icon">
+                        <span className="text-xl">🔥</span>
+                      </div>
+                      <div className="stat-number">{playerStats.currentStreak}</div>
+                      <div className="stat-label">Current Streak</div>
+                    </div>
+                    
+                    <div className="stat-card">
+                      <div className="stat-icon">
+                        <span className="text-xl">⭐</span>
+                      </div>
+                      <div className="stat-number">{playerStats.bestStreak}</div>
+                      <div className="stat-label">Best Streak</div>
+                    </div>
+                    
+                    <div className="stat-card">
+                      <div className="stat-icon">
+                        <span className="text-xl">🏅</span>
+                      </div>
+                      <div className="stat-number">{playerStats.totalTournaments}</div>
+                      <div className="stat-label">Tournaments</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Tournaments Tab */}
+              {activeTab === 'tournaments' && (
+                <div className="animate-fade-in">
+                  <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
+                    <span>🏆</span>
+                    Tournament History
+                  </h3>
+                  <div className="space-y-4">
+                    {recentTournaments.map((tournament) => (
+                      <div key={tournament.id} className="tournament-card">
+                        <div className="tournament-content">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h4 className="font-semibold text-lg">{tournament.name}</h4>
+                              <p className="text-gray-600">{new Date(tournament.date).toLocaleDateString()}</p>
+                            </div>
+                            <div className="text-right">
+                              <div className={`text-2xl font-bold ${tournament.position === 1 ? 'text-yellow-500' : tournament.position === 2 ? 'text-gray-400' : tournament.position === 3 ? 'text-amber-600' : 'text-gray-600'}`}>
+                                #{tournament.position}
+                              </div>
+                              <div className="text-sm text-gray-500">of {tournament.players} players</div>
+                            </div>
+                          </div>
+                          <div className="flex justify-between items-center mt-4">
+                            <div className="text-green-600 font-semibold">{tournament.prize}</div>
+                            <div className="flex items-center gap-2">
+                              {tournament.position === 1 && <span>🥇</span>}
+                              {tournament.position === 2 && <span>🥈</span>}
+                              {tournament.position === 3 && <span>🥉</span>}
+                              <span className="text-sm text-gray-500">
+                                {tournament.position === 1 ? 'Champion' : 
+                                 tournament.position === 2 ? 'Runner-up' : 
+                                 tournament.position === 3 ? 'Third Place' : 
+                                 `${tournament.position}th Place`}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Achievements Tab */}
+              {activeTab === 'achievements' && (
+                <div className="animate-fade-in">
+                  <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
+                    <span>🏅</span>
+                    Achievements
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {achievements.map((achievement) => (
+                      <div 
+                        key={achievement.id} 
+                        className={`card ${achievement.earned ? 'bg-gradient-to-br from-yellow-50 to-orange-50' : 'opacity-75'}`}
+                      >
+                        <div className="card-content text-center">
+                          <div className="text-4xl mb-3">{achievement.icon}</div>
+                          <h4 className="font-semibold mb-2">{achievement.name}</h4>
+                          <p className="text-sm text-gray-600 mb-3">{achievement.description}</p>
+                          {achievement.earned ? (
+                            <div className="text-xs text-green-600 font-medium">
+                              Earned {new Date(achievement.date).toLocaleDateString()}
+                            </div>
+                          ) : achievement.progress ? (
+                            <div>
+                              <div className="text-xs text-gray-500 mb-2">
+                                Progress: {achievement.progress}/{achievement.total}
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div 
+                                  className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full"
+                                  style={{ width: `${(achievement.progress / achievement.total) * 100}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="text-xs text-gray-400">Not earned yet</div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Settings Tab */}
+              {activeTab === 'settings' && (
+                <div className="animate-fade-in">
+                  <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
+                    <span>⚙️</span>
+                    Account Settings
+                  </h3>
+                  <div className="space-y-6">
+                    <div className="card">
+                      <div className="card-header">
+                        <h4 className="card-title">Profile Information</h4>
+                      </div>
+                      <div className="card-content">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="form-group">
+                            <label className="form-label">Full Name</label>
+                            <input
+                              type="text"
+                              className="form-input"
+                              value={profileData.name}
+                              onChange={(e) => setProfileData({...profileData, name: e.target.value})}
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label className="form-label">Email</label>
+                            <input
+                              type="email"
+                              className="form-input"
+                              value={profileData.email}
+                              onChange={(e) => setProfileData({...profileData, email: e.target.value})}
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label className="form-label">Phone</label>
+                            <input
+                              type="tel"
+                              className="form-input"
+                              value={profileData.phone}
+                              onChange={(e) => setProfileData({...profileData, phone: e.target.value})}
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label className="form-label">Location</label>
+                            <input
+                              type="text"
+                              className="form-input"
+                              value={profileData.location}
+                              onChange={(e) => setProfileData({...profileData, location: e.target.value})}
+                            />
+                          </div>
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">Bio</label>
+                          <textarea
+                            className="form-input"
+                            rows="4"
+                            value={profileData.bio}
+                            onChange={(e) => setProfileData({...profileData, bio: e.target.value})}
+                          ></textarea>
+                        </div>
+                        <button className="btn btn-primary">
+                          Save Changes
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="card">
+                      <div className="card-header">
+                        <h4 className="card-title">Preferences</h4>
+                      </div>
+                      <div className="card-content">
+                        <div className="space-y-4">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <div className="font-medium">Email Notifications</div>
+                              <div className="text-sm text-gray-500">Receive tournament updates via email</div>
+                            </div>
+                            <button className="btn btn-outline btn-sm">
+                              Enabled
+                            </button>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <div className="font-medium">Public Profile</div>
+                              <div className="text-sm text-gray-500">Allow others to view your profile</div>
+                            </div>
+                            <button className="btn btn-outline btn-sm">
+                              Public
+                            </button>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <div className="font-medium">Tournament Invitations</div>
+                              <div className="text-sm text-gray-500">Allow tournament organizers to invite you</div>
+                            </div>
+                            <button className="btn btn-outline btn-sm">
+                              Enabled
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
-
-      {/* Tab Content */}
-      {renderTabContent()}
     </div>
   )
 }

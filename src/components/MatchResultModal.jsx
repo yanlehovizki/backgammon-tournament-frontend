@@ -1,303 +1,332 @@
-import { useState, useEffect } from 'react'
-import { X, Trophy, Target, User } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
 
-const MatchResultModal = ({ 
-  isOpen, 
-  onClose, 
-  match, 
-  onResultSubmitted,
-  tournament 
-}) => {
-  const [result, setResult] = useState({
-    score_player1: '',
-    score_player2: '',
-    winner_id: ''
+const MatchResultModal = ({ isOpen, onClose, onSave, match }) => {
+  const [formData, setFormData] = useState({
+    player1Score: '',
+    player2Score: '',
+    status: 'active',
+    notes: '',
+    duration: '',
+    startTime: '',
+    endTime: ''
   })
-  const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [errors, setErrors] = useState({})
 
   useEffect(() => {
     if (match) {
-      setResult({
-        score_player1: '',
-        score_player2: '',
-        winner_id: ''
+      setFormData({
+        player1Score: match.score1?.toString() || '',
+        player2Score: match.score2?.toString() || '',
+        status: match.status || 'active',
+        notes: match.notes || '',
+        duration: match.duration || '',
+        startTime: match.startTime || '',
+        endTime: match.endTime || ''
       })
-      setMessage('')
     }
   }, [match])
 
-  const handleScoreChange = (player, score) => {
-    const newResult = {
-      ...result,
-      [`score_${player}`]: score
+  if (!isOpen || !match) return null
+
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }))
     }
+  }
+
+  const validateForm = () => {
+    const newErrors = {}
     
-    // Auto-determine winner based on scores
-    if (newResult.score_player1 && newResult.score_player2) {
-      const score1 = parseInt(newResult.score_player1)
-      const score2 = parseInt(newResult.score_player2)
-      
-      if (score1 > score2) {
-        newResult.winner_id = match.player1.id
-      } else if (score2 > score1) {
-        newResult.winner_id = match.player2.id
-      } else {
-        newResult.winner_id = '' // Tie - user must select winner
+    if (formData.status === 'completed') {
+      if (!formData.player1Score || formData.player1Score < 0) {
+        newErrors.player1Score = 'Please enter a valid score for Player 1'
+      }
+      if (!formData.player2Score || formData.player2Score < 0) {
+        newErrors.player2Score = 'Please enter a valid score for Player 2'
+      }
+      if (formData.player1Score === formData.player2Score) {
+        newErrors.general = 'Scores cannot be tied. Please enter different scores.'
       }
     }
     
-    setResult(newResult)
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setLoading(true)
-    setMessage('')
-
-    // Validation
-    if (!result.score_player1 || !result.score_player2) {
-      setMessage('Please enter scores for both players')
-      setLoading(false)
-      return
-    }
-
-    if (!result.winner_id) {
-      setMessage('Please select the winner')
-      setLoading(false)
-      return
-    }
-
+    
+    if (!validateForm()) return
+    
+    setIsLoading(true)
+    
     try {
-      // Submit match result to API
-      const response = await fetch(`https://77h9ikcj6vgw.manus.space/api/matches/${match.matchId}/result`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          score_player1: parseInt(result.score_player1),
-          score_player2: parseInt(result.score_player2),
-          winner_id: result.winner_id
-        }),
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        setMessage('Match result saved successfully!')
-        setTimeout(() => {
-          onResultSubmitted({
-            matchId: match.matchId,
-            result: {
-              score_player1: parseInt(result.score_player1),
-              score_player2: parseInt(result.score_player2),
-              winner_id: result.winner_id
-            }
-          })
-          onClose()
-        }, 1000)
-      } else {
-        setMessage(`Failed to save result: ${data.error || 'Unknown error'}`)
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      const updatedMatch = {
+        ...match,
+        score1: formData.status === 'completed' ? parseInt(formData.player1Score) : null,
+        score2: formData.status === 'completed' ? parseInt(formData.player2Score) : null,
+        status: formData.status,
+        notes: formData.notes,
+        duration: formData.duration,
+        startTime: formData.startTime,
+        endTime: formData.endTime,
+        updatedAt: new Date().toISOString()
       }
+      
+      onSave(updatedMatch)
+      onClose()
     } catch (error) {
-      setMessage(`Error: ${error.message}`)
+      console.error('Error saving match result:', error)
+      setErrors({ general: 'Failed to save match result. Please try again.' })
     } finally {
-      setLoading(false)
+      setIsLoading(false)
     }
   }
 
-  if (!isOpen || !match) return null
+  const getWinner = () => {
+    if (formData.status !== 'completed' || !formData.player1Score || !formData.player2Score) {
+      return null
+    }
+    return parseInt(formData.player1Score) > parseInt(formData.player2Score) ? match.player1 : match.player2
+  }
 
-  const getPlayerDisplayName = (player) => {
-    if (!player) return 'Unknown Player'
-    if (player.isBye) return 'BYE'
-    return player.name
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'upcoming': return 'text-gray-600 bg-gray-50'
+      case 'active': return 'text-blue-600 bg-blue-50'
+      case 'completed': return 'text-green-600 bg-green-50'
+      default: return 'text-gray-600 bg-gray-50'
+    }
   }
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000,
-      padding: '16px'
-    }}>
-      <div className="card" style={{ maxWidth: '500px', width: '100%' }}>
-        <div className="card-header">
-          <div className="flex justify-between items-center">
-            <h2 className="card-title text-xl">Enter Match Result</h2>
-            <button
-              onClick={onClose}
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                padding: '4px'
-              }}
-            >
-              <X style={{ width: '24px', height: '24px', color: '#6b7280' }} />
-            </button>
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', width: '90vw' }}>
+        <div className="card">
+          {/* Beautiful Header */}
+          <div className="card-header">
+            <div className="flex justify-between items-start">
+              <div>
+                <h2 className="card-title text-2xl">Match Result</h2>
+                <p className="card-description">Update match details and scores</p>
+              </div>
+              <div className={`badge ${getStatusColor(formData.status)}`}>
+                {formData.status.charAt(0).toUpperCase() + formData.status.slice(1)}
+              </div>
+            </div>
           </div>
-          <p className="card-description">
-            Round {match.roundNumber} - Match {match.matchNumber}
-          </p>
-        </div>
 
-        <div className="card-content">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Match Info */}
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <div className="flex items-center justify-center space-x-4">
-                <div className="text-center">
-                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-2">
-                    <User className="h-6 w-6 text-blue-600" />
+          <form onSubmit={handleSubmit}>
+            <div className="card-content space-y-6">
+              {/* Error Display */}
+              {errors.general && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="flex items-center gap-2 text-red-800">
+                    <span>❌</span>
+                    <span>{errors.general}</span>
                   </div>
-                  <div className="font-medium text-primary">{getPlayerDisplayName(match.player1)}</div>
                 </div>
-                <div className="text-2xl font-bold text-secondary">VS</div>
-                <div className="text-center">
-                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-2">
-                    <User className="h-6 w-6 text-blue-600" />
+              )}
+
+              {/* Match Info */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <span>🏆</span>
+                  Match Information
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="card bg-blue-50">
+                    <div className="card-content text-center">
+                      <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-blue-500 text-white flex items-center justify-center text-xl font-bold">
+                        {match.player1 ? match.player1.split(' ').map(n => n[0]).join('') : '?'}
+                      </div>
+                      <h4 className="font-semibold text-lg">{match.player1 || 'TBD'}</h4>
+                      <p className="text-sm text-gray-600">Player 1</p>
+                    </div>
                   </div>
-                  <div className="font-medium text-primary">{getPlayerDisplayName(match.player2)}</div>
+                  
+                  <div className="card bg-purple-50">
+                    <div className="card-content text-center">
+                      <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-purple-500 text-white flex items-center justify-center text-xl font-bold">
+                        {match.player2 ? match.player2.split(' ').map(n => n[0]).join('') : '?'}
+                      </div>
+                      <h4 className="font-semibold text-lg">{match.player2 || 'TBD'}</h4>
+                      <p className="text-sm text-gray-600">Player 2</p>
+                    </div>
+                  </div>
                 </div>
+                
+                <div className="text-center mt-4">
+                  <div className="text-sm text-gray-600">Round {match.round} • Match {match.id}</div>
+                </div>
+              </div>
+
+              {/* Match Status */}
+              <div>
+                <label className="form-label">Match Status *</label>
+                <select
+                  className="form-input"
+                  value={formData.status}
+                  onChange={(e) => handleInputChange('status', e.target.value)}
+                  required
+                >
+                  <option value="upcoming">Upcoming</option>
+                  <option value="active">Active</option>
+                  <option value="completed">Completed</option>
+                </select>
+              </div>
+
+              {/* Scores */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <span>🎯</span>
+                  Match Scores
+                </h3>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="form-label">
+                      {match.player1 || 'Player 1'} Score
+                      {formData.status === 'completed' && <span className="text-red-500"> *</span>}
+                    </label>
+                    <input
+                      type="number"
+                      className={`form-input ${errors.player1Score ? 'border-red-500' : ''}`}
+                      placeholder="0"
+                      min="0"
+                      value={formData.player1Score}
+                      onChange={(e) => handleInputChange('player1Score', e.target.value)}
+                      disabled={formData.status !== 'completed'}
+                    />
+                    {errors.player1Score && (
+                      <p className="text-sm text-red-600 mt-1">{errors.player1Score}</p>
+                    )}
+                  </div>
+                  
+                  <div>
+                    <label className="form-label">
+                      {match.player2 || 'Player 2'} Score
+                      {formData.status === 'completed' && <span className="text-red-500"> *</span>}
+                    </label>
+                    <input
+                      type="number"
+                      className={`form-input ${errors.player2Score ? 'border-red-500' : ''}`}
+                      placeholder="0"
+                      min="0"
+                      value={formData.player2Score}
+                      onChange={(e) => handleInputChange('player2Score', e.target.value)}
+                      disabled={formData.status !== 'completed'}
+                    />
+                    {errors.player2Score && (
+                      <p className="text-sm text-red-600 mt-1">{errors.player2Score}</p>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Winner Display */}
+                {getWinner() && (
+                  <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center justify-center gap-2 text-green-800">
+                      <span>🏆</span>
+                      <span className="font-semibold">Winner: {getWinner()}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Match Details */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <span>📝</span>
+                  Match Details
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="form-label">Start Time</label>
+                    <input
+                      type="datetime-local"
+                      className="form-input"
+                      value={formData.startTime}
+                      onChange={(e) => handleInputChange('startTime', e.target.value)}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="form-label">End Time</label>
+                    <input
+                      type="datetime-local"
+                      className="form-input"
+                      value={formData.endTime}
+                      onChange={(e) => handleInputChange('endTime', e.target.value)}
+                      disabled={formData.status !== 'completed'}
+                    />
+                  </div>
+                  
+                  <div className="md:col-span-2">
+                    <label className="form-label">Duration (minutes)</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      placeholder="e.g., 45"
+                      min="1"
+                      value={formData.duration}
+                      onChange={(e) => handleInputChange('duration', e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="form-label">Match Notes</label>
+                <textarea
+                  className="form-input"
+                  rows="4"
+                  placeholder="Add any notes about the match (optional)..."
+                  value={formData.notes}
+                  onChange={(e) => handleInputChange('notes', e.target.value)}
+                ></textarea>
               </div>
             </div>
 
-            {/* Score Input */}
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-primary mb-2">
-                  {getPlayerDisplayName(match.player1)} Score
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={result.score_player1}
-                  onChange={(e) => handleScoreChange('player1', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    fontSize: '16px',
-                    outline: 'none',
-                    textAlign: 'center'
-                  }}
-                  placeholder="0"
-                  onFocus={(e) => e.target.style.borderColor = '#2563eb'}
-                  onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
-                  required
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-primary mb-2">
-                  {getPlayerDisplayName(match.player2)} Score
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={result.score_player2}
-                  onChange={(e) => handleScoreChange('player2', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    fontSize: '16px',
-                    outline: 'none',
-                    textAlign: 'center'
-                  }}
-                  placeholder="0"
-                  onFocus={(e) => e.target.style.borderColor = '#2563eb'}
-                  onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Winner Selection */}
-            <div>
-              <label className="block text-sm font-medium text-primary mb-3">
-                <Trophy style={{ width: '16px', height: '16px', display: 'inline', marginRight: '8px' }} />
-                Match Winner
-              </label>
-              <div className="grid grid-cols-2 gap-3">
+            {/* Footer */}
+            <div className="card-content border-t border-gray-200">
+              <div className="flex justify-between items-center">
                 <button
                   type="button"
-                  onClick={() => setResult({ ...result, winner_id: match.player1.id })}
-                  className={`
-                    p-3 border rounded-lg text-center transition-all
-                    ${result.winner_id === match.player1.id 
-                      ? 'border-green-500 bg-green-50 text-green-700' 
-                      : 'border-gray-200 hover:border-gray-300'
-                    }
-                  `}
+                  onClick={onClose}
+                  className="btn btn-outline"
                 >
-                  <div className="font-medium">{getPlayerDisplayName(match.player1)}</div>
-                  {result.winner_id === match.player1.id && (
-                    <Trophy className="h-4 w-4 text-green-600 mx-auto mt-1" />
-                  )}
+                  Cancel
                 </button>
                 
                 <button
-                  type="button"
-                  onClick={() => setResult({ ...result, winner_id: match.player2.id })}
-                  className={`
-                    p-3 border rounded-lg text-center transition-all
-                    ${result.winner_id === match.player2.id 
-                      ? 'border-green-500 bg-green-50 text-green-700' 
-                      : 'border-gray-200 hover:border-gray-300'
-                    }
-                  `}
+                  type="submit"
+                  disabled={isLoading}
+                  className="btn btn-primary"
                 >
-                  <div className="font-medium">{getPlayerDisplayName(match.player2)}</div>
-                  {result.winner_id === match.player2.id && (
-                    <Trophy className="h-4 w-4 text-green-600 mx-auto mt-1" />
+                  {isLoading ? (
+                    <>
+                      <div className="spinner"></div>
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>💾</span>
+                      <span>Save Result</span>
+                    </>
                   )}
                 </button>
               </div>
             </div>
-
-            {/* Submit Buttons */}
-            <div className="flex space-x-4">
-              <button
-                type="button"
-                onClick={onClose}
-                className="btn btn-secondary"
-                style={{ flex: 1 }}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="btn btn-primary"
-                style={{ flex: 1 }}
-              >
-                {loading ? 'Saving...' : 'Save Result'}
-              </button>
-            </div>
           </form>
-
-          {/* Message */}
-          {message && (
-            <div className={`mt-4 p-3 rounded-lg text-sm ${
-              message.includes('successfully') 
-                ? 'bg-green-50 text-green-600 border border-green-200' 
-                : 'bg-red-50 text-red-600 border border-red-200'
-            }`}>
-              {message}
-            </div>
-          )}
         </div>
       </div>
     </div>
@@ -305,4 +334,3 @@ const MatchResultModal = ({
 }
 
 export default MatchResultModal
-

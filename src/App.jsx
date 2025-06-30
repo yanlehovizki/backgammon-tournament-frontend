@@ -1,20 +1,19 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Navbar from './components/Navbar';
-import Dashboard from './components/Dashboard';
-import Tournaments from './components/Tournaments';
-import TournamentDetail from './components/TournamentDetail';
-import PlayerProfile from './components/PlayerProfile';
-import Login from './components/Login';
+import React from 'react'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import Navbar from './components/Navbar'
+import Dashboard from './components/Dashboard'
+import Tournaments from './components/Tournaments'
+import PlayerProfile from './components/PlayerProfile'
+import TournamentDetail from './components/TournamentDetail'
+import Login from './components/Login'
 
-function App() {
+const App = () => {
   return (
     <Router>
-      <div className="App">
+      <div className="min-h-screen">
         <Navbar />
         <Routes>
           <Route path="/" element={<Dashboard />} />
-          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/tournaments" element={<Tournaments />} />
           <Route path="/tournaments/:id" element={<TournamentDetail />} />
           <Route path="/profile" element={<PlayerProfile />} />
@@ -22,7 +21,7 @@ function App() {
         </Routes>
       </div>
     </Router>
-  );
+  )
 }
 
-export default App;
+export default App
