@@ -1,69 +1,98 @@
 import React, { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import CreateTournamentModal from './CreateTournamentModal'
 
-const Dashboard = ({ user = { name: 'Player', player_id: 1 } }) => {
+const Dashboard = () => {
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [tournaments, setTournaments] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [stats, setStats] = useState({
+    totalTournaments: 0,
+    activeTournaments: 0,
+    totalPlayers: 0,
+    totalPrizePool: 0
+  })
+  const [loading, setLoading] = useState(true)
 
-  // Sample data for beautiful display
-  const sampleTournaments = [
-    {
-      tournament_id: 1,
-      name: "Spring Championship",
-      date: "2025-07-15",
-      status: "upcoming",
-      enrollment_count: 12,
-      max_players: 16,
-      prize_pool: 500
-    },
-    {
-      tournament_id: 2,
-      name: "Weekly Tournament",
-      date: "2025-07-08",
-      status: "in_progress",
-      enrollment_count: 8,
-      max_players: 8,
-      prize_pool: 200
-    },
-    {
-      tournament_id: 3,
-      name: "Beginner's Cup",
-      date: "2025-07-22",
-      status: "upcoming",
-      enrollment_count: 6,
-      max_players: 12,
-      prize_pool: 150
+  useEffect(() => {
+    // Simulate loading data
+    setTimeout(() => {
+      const mockTournaments = [
+        {
+          id: 1,
+          name: 'Spring Championship 2025',
+          status: 'active',
+          participants: 14,
+          maxPlayers: 16,
+          prizePool: 400,
+          startDate: '2025-07-15',
+          format: 'single-elimination'
+        },
+        {
+          id: 2,
+          name: 'Weekly Tournament #12',
+          status: 'upcoming',
+          participants: 8,
+          maxPlayers: 12,
+          prizePool: 150,
+          startDate: '2025-07-20',
+          format: 'round-robin'
+        },
+        {
+          id: 3,
+          name: 'Pro League Finals',
+          status: 'completed',
+          participants: 32,
+          maxPlayers: 32,
+          prizePool: 1000,
+          startDate: '2025-06-28',
+          format: 'double-elimination'
+        }
+      ]
+
+      setTournaments(mockTournaments)
+      setStats({
+        totalTournaments: mockTournaments.length,
+        activeTournaments: mockTournaments.filter(t => t.status === 'active').length,
+        totalPlayers: mockTournaments.reduce((sum, t) => sum + t.participants, 0),
+        totalPrizePool: mockTournaments.reduce((sum, t) => sum + t.prizePool, 0)
+      })
+      setLoading(false)
+    }, 1000)
+  }, [])
+
+  const handleCreateTournament = (tournamentData) => {
+    const newTournament = {
+      id: tournaments.length + 1,
+      ...tournamentData,
+      participants: 0,
+      status: 'upcoming'
     }
-  ]
-
-  const playerStats = {
-    current_tournaments: sampleTournaments.filter(t => t.status !== 'completed'),
-    past_tournaments: [
-      { tournament_id: 3, name: "Previous Tournament", wins: 5, losses: 2, total_score: 150 }
-    ],
-    total_wins: 12,
-    total_tournaments: 15,
-    win_rate: 80
+    setTournaments(prev => [newTournament, ...prev])
+    setIsCreateModalOpen(false)
   }
 
-  const getStatusBadge = (status) => {
-    const badgeClasses = {
-      upcoming: 'badge badge-primary',
-      in_progress: 'badge badge-success',
-      completed: 'badge badge-outline'
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'upcoming': return 'text-blue-600 bg-blue-50'
+      case 'active': return 'text-green-600 bg-green-50'
+      case 'completed': return 'text-gray-600 bg-gray-50'
+      default: return 'text-gray-600 bg-gray-50'
     }
-    
-    const statusText = {
-      upcoming: 'Upcoming',
-      in_progress: 'In Progress',
-      completed: 'Completed'
-    }
-    
+  }
+
+  if (loading) {
     return (
-      <span className={badgeClasses[status] || badgeClasses.upcoming}>
-        {statusText[status] || 'Unknown'}
-      </span>
+      <div className="page-wrapper">
+        <div className="main-content">
+          <div className="container">
+            <div className="flex items-center justify-center py-20">
+              <div className="text-center">
+                <div className="loading-spinner mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading dashboard...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     )
   }
 
@@ -71,300 +100,132 @@ const Dashboard = ({ user = { name: 'Player', player_id: 1 } }) => {
     <div className="page-wrapper">
       <div className="main-content">
         <div className="container">
-          {/* Beautiful Header */}
+          {/* NO NAVIGATION HERE - Only content */}
+          
+          {/* Welcome Section */}
           <div className="flex justify-between items-center mb-8 animate-fade-in">
             <div>
-              <h1 className="text-4xl font-bold text-gray-900 mb-2">
-                Welcome back, {user.name}! 👋
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                Welcome back, Player! 👋
               </h1>
-              <p className="text-lg text-gray-600">
-                Ready to dominate the backgammon world?
-              </p>
+              <p className="text-gray-600">Ready to dominate the backgammon world?</p>
             </div>
-            <button 
-              onClick={() => setShowCreateModal(true)}
-              className="btn btn-primary btn-lg animate-slide-in"
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="btn btn-primary btn-lg"
             >
               <span>✨</span>
               <span>Create Tournament</span>
             </button>
           </div>
 
-          {/* Beautiful Stats Cards */}
+          {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div className="stat-card animate-fade-in">
-              <div className="stat-icon">
-                <span className="text-xl">🏆</span>
-              </div>
-              <div className="stat-number">{playerStats.current_tournaments.length}</div>
-              <div className="stat-label">Active Tournaments</div>
-            </div>
-            
             <div className="stat-card animate-fade-in" style={{ animationDelay: '0.1s' }}>
-              <div className="stat-icon">
-                <span className="text-xl">📈</span>
+              <div className="stat-icon bg-blue-500">🏆</div>
+              <div className="stat-content">
+                <div className="stat-number">{stats.totalTournaments}</div>
+                <div className="stat-label">Total Tournaments</div>
               </div>
-              <div className="stat-number">{playerStats.total_wins}</div>
-              <div className="stat-label">Total Wins</div>
             </div>
-            
+
             <div className="stat-card animate-fade-in" style={{ animationDelay: '0.2s' }}>
-              <div className="stat-icon">
-                <span className="text-xl">🎯</span>
+              <div className="stat-icon bg-green-500">⚡</div>
+              <div className="stat-content">
+                <div className="stat-number">{stats.activeTournaments}</div>
+                <div className="stat-label">Active Tournaments</div>
               </div>
-              <div className="stat-number">{playerStats.win_rate}%</div>
-              <div className="stat-label">Win Rate</div>
             </div>
-            
+
             <div className="stat-card animate-fade-in" style={{ animationDelay: '0.3s' }}>
-              <div className="stat-icon">
-                <span className="text-xl">🏅</span>
-              </div>
-              <div className="stat-number">{playerStats.total_tournaments}</div>
-              <div className="stat-label">Total Tournaments</div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* My Current Tournaments */}
-            <div className="card animate-fade-in" style={{ animationDelay: '0.4s' }}>
-              <div className="card-header">
-                <h2 className="card-title">
-                  <span>🎮</span>
-                  My Current Tournaments
-                </h2>
-                <p className="card-description">
-                  Tournaments you're currently participating in
-                </p>
-              </div>
-              <div className="card-content">
-                {playerStats.current_tournaments.length > 0 ? (
-                  <div className="flex flex-col gap-4">
-                    {playerStats.current_tournaments.map((tournament) => (
-                      <div key={tournament.tournament_id} className="tournament-card">
-                        <div className="tournament-header">
-                          <div className="flex justify-between items-start mb-2">
-                            <h3 className="tournament-title">{tournament.name}</h3>
-                            {getStatusBadge(tournament.status)}
-                          </div>
-                          <div className="tournament-meta">
-                            <div className="tournament-meta-item">
-                              <span>📅</span>
-                              <span>{new Date(tournament.date).toLocaleDateString()}</span>
-                            </div>
-                            <div className="tournament-meta-item">
-                              <span>👥</span>
-                              <span>{tournament.enrollment_count}/{tournament.max_players} players</span>
-                            </div>
-                            {tournament.prize_pool && (
-                              <div className="tournament-meta-item">
-                                <span>💰</span>
-                                <span>${tournament.prize_pool}</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <div className="tournament-content">
-                          <div className="tournament-actions">
-                            <Link to={`/tournaments/${tournament.tournament_id}`} className="btn btn-primary btn-sm">
-                              View Details
-                            </Link>
-                            <button className="btn btn-outline btn-sm">
-                              Leave Tournament
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="empty-state">
-                    <div className="empty-state-icon">🎯</div>
-                    <div className="empty-state-title">No Active Tournaments</div>
-                    <div className="empty-state-description">
-                      You're not currently enrolled in any tournaments.
-                    </div>
-                    <button 
-                      onClick={() => setShowCreateModal(true)}
-                      className="btn btn-primary"
-                    >
-                      Create Your First Tournament
-                    </button>
-                  </div>
-                )}
+              <div className="stat-icon bg-purple-500">👥</div>
+              <div className="stat-content">
+                <div className="stat-number">{stats.totalPlayers}</div>
+                <div className="stat-label">Total Players</div>
               </div>
             </div>
 
-            {/* Upcoming Tournaments */}
-            <div className="card animate-fade-in" style={{ animationDelay: '0.5s' }}>
-              <div className="card-header">
-                <h2 className="card-title">
-                  <span>🚀</span>
-                  Upcoming Tournaments
-                </h2>
-                <p className="card-description">
-                  Join these exciting upcoming tournaments
-                </p>
-              </div>
-              <div className="card-content">
-                {sampleTournaments.filter(t => t.status === 'upcoming').length > 0 ? (
-                  <div className="flex flex-col gap-4">
-                    {sampleTournaments.filter(t => t.status === 'upcoming').map((tournament) => (
-                      <div key={tournament.tournament_id} className="tournament-card">
-                        <div className="tournament-header">
-                          <div className="flex justify-between items-start mb-2">
-                            <h3 className="tournament-title">{tournament.name}</h3>
-                            {getStatusBadge(tournament.status)}
-                          </div>
-                          <div className="tournament-meta">
-                            <div className="tournament-meta-item">
-                              <span>📅</span>
-                              <span>{new Date(tournament.date).toLocaleDateString()}</span>
-                            </div>
-                            <div className="tournament-meta-item">
-                              <span>👥</span>
-                              <span>{tournament.enrollment_count}/{tournament.max_players} players</span>
-                            </div>
-                            {tournament.prize_pool && (
-                              <div className="tournament-meta-item">
-                                <span>💰</span>
-                                <span>${tournament.prize_pool}</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <div className="tournament-content">
-                          <div className="tournament-actions">
-                            <Link to={`/tournaments/${tournament.tournament_id}`} className="btn btn-outline btn-sm">
-                              View Details
-                            </Link>
-                            <button className="btn btn-success btn-sm">
-                              Join Tournament
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="empty-state">
-                    <div className="empty-state-icon">📅</div>
-                    <div className="empty-state-title">No Upcoming Tournaments</div>
-                    <div className="empty-state-description">
-                      No tournaments are scheduled at the moment.
-                    </div>
-                    <Link to="/tournaments" className="btn btn-outline">
-                      Browse All Tournaments
-                    </Link>
-                  </div>
-                )}
+            <div className="stat-card animate-fade-in" style={{ animationDelay: '0.4s' }}>
+              <div className="stat-icon bg-orange-500">💰</div>
+              <div className="stat-content">
+                <div className="stat-number">${stats.totalPrizePool}</div>
+                <div className="stat-label">Total Prize Pool</div>
               </div>
             </div>
           </div>
 
-          {/* Quick Actions */}
-          <div className="card mt-8 animate-fade-in" style={{ animationDelay: '0.6s' }}>
+          {/* Recent Tournaments */}
+          <div className="card animate-fade-in" style={{ animationDelay: '0.5s' }}>
             <div className="card-header">
-              <h2 className="card-title">
-                <span>⚡</span>
-                Quick Actions
-              </h2>
-              <p className="card-description">
-                Common actions to get you started
-              </p>
-            </div>
-            <div className="card-content">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <button 
-                  onClick={() => setShowCreateModal(true)}
-                  className="btn btn-primary w-full"
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="card-title">Recent Tournaments</h2>
+                  <p className="card-description">Your latest tournament activity</p>
+                </div>
+                <button
+                  onClick={() => setIsCreateModalOpen(true)}
+                  className="btn btn-outline btn-sm"
                 >
-                  <span>🏆</span>
-                  <span>Create Tournament</span>
+                  <span>➕</span>
+                  <span>New Tournament</span>
                 </button>
-                <Link to="/tournaments" className="btn btn-outline w-full">
-                  <span>🔍</span>
-                  <span>Browse Tournaments</span>
-                </Link>
-                <Link to="/profile" className="btn btn-secondary w-full">
-                  <span>👤</span>
-                  <span>View Profile</span>
-                </Link>
               </div>
+            </div>
+
+            <div className="card-content">
+              <div className="space-y-4">
+                {tournaments.slice(0, 5).map((tournament) => (
+                  <div key={tournament.id} className="tournament-card">
+                    <div className="flex items-center gap-4">
+                      <div className="tournament-icon">
+                        🏆
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-900">{tournament.name}</h3>
+                        <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
+                          <span>{tournament.participants}/{tournament.maxPlayers} players</span>
+                          <span>${tournament.prizePool} prize pool</span>
+                          <span>{tournament.format.replace('-', ' ')}</span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className={`badge ${getStatusColor(tournament.status)}`}>
+                          {tournament.status.charAt(0).toUpperCase() + tournament.status.slice(1)}
+                        </div>
+                        <div className="text-sm text-gray-500 mt-1">
+                          {new Date(tournament.startDate).toLocaleDateString()}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {tournaments.length === 0 && (
+                <div className="empty-state">
+                  <div className="text-6xl mb-4">🏆</div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">No tournaments yet</h3>
+                  <p className="text-gray-600 mb-6">Create your first tournament to get started!</p>
+                  <button
+                    onClick={() => setIsCreateModalOpen(true)}
+                    className="btn btn-primary"
+                  >
+                    <span>✨</span>
+                    <span>Create Your First Tournament</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Beautiful Create Tournament Modal */}
-      {showCreateModal && (
-        <div className="fixed top-0 left-0 w-full h-full bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="card w-full max-w-md animate-fade-in">
-            <div className="card-header">
-              <div className="flex justify-between items-center">
-                <h2 className="card-title">
-                  <span>✨</span>
-                  Create Tournament
-                </h2>
-                <button
-                  onClick={() => setShowCreateModal(false)}
-                  className="btn btn-secondary btn-sm"
-                >
-                  ✕
-                </button>
-              </div>
-              <p className="card-description">
-                Create a new tournament for players to join
-              </p>
-            </div>
-            <div className="card-content">
-              <div className="form-group">
-                <label className="form-label">Tournament Name</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="Enter tournament name"
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Tournament Date</label>
-                <input
-                  type="date"
-                  className="form-input"
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Max Players</label>
-                <select className="form-select">
-                  <option value="8">8 Players</option>
-                  <option value="16">16 Players</option>
-                  <option value="32">32 Players</option>
-                </select>
-              </div>
-
-              <div className="flex gap-3 mt-6">
-                <button
-                  onClick={() => setShowCreateModal(false)}
-                  className="btn btn-secondary flex-1"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => {
-                    alert('Tournament created successfully! 🎉')
-                    setShowCreateModal(false)
-                  }}
-                  className="btn btn-primary flex-1"
-                >
-                  Create Tournament
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Create Tournament Modal */}
+      <CreateTournamentModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSave={handleCreateTournament}
+      />
     </div>
   )
 }

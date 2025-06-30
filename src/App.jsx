@@ -10,15 +10,21 @@ import Login from './components/Login'
 const App = () => {
   return (
     <Router>
-      <div className="min-h-screen">
+      <div className="min-h-screen bg-gray-50">
+        {/* Only the beautiful Navbar - no duplicate navigation */}
         <Navbar />
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/tournaments" element={<Tournaments />} />
-          <Route path="/tournaments/:id" element={<TournamentDetail />} />
-          <Route path="/profile" element={<PlayerProfile />} />
-          <Route path="/login" element={<Login />} />
-        </Routes>
+        
+        {/* Main content area */}
+        <main>
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/tournaments" element={<Tournaments />} />
+            <Route path="/tournaments/:id" element={<TournamentDetail />} />
+            <Route path="/profile" element={<PlayerProfile />} />
+            <Route path="/login" element={<Login />} />
+          </Routes>
+        </main>
       </div>
     </Router>
   )
